@@ -129,7 +129,23 @@ Complete documentation for Virtual Pet application, covering MVP (V1) and post-l
 
 ## Implementation Planning
 
-### 8. **IMPLEMENTATION_ROADMAP.md**
+### 8. **WORLD_VISUALS.md** *(new — March 22, 2026)*
+**What**: Reference for every visual layer in the game world: tiles, path overlay, props, shadows, decorative grass/flowers, forest, night glow
+**Who**: Frontend devs working on world layout or adding new assets
+**Key Sections**:
+- Scene layer stack (z-index table)
+- Area grid reference
+- Ground tiles & path overlay tile keys
+- All WorldProps entries (interactive + decor)
+- Shadow placement & scaling
+- Grass/flower bundle rules
+- Night system & glow brightness
+
+**Use When**: Adding new props, adjusting positions, changing visual style, or debugging z-index issues
+
+---
+
+### 9. **IMPLEMENTATION_ROADMAP.md**
 **What**: Detailed timeline, effort estimates, resource planning, risk assessment
 **Who**: Tech leads, project managers, team planning
 **Length**: 15-20 min read
@@ -389,7 +405,7 @@ Before presenting to team:
 
 ---
 
-**Last Updated**: March 21, 2026  
-**Status**: Ready for team review & discussion  
-**Next Review**: After V1 MVP launch  
+**Last Updated**: March 22, 2026
+**Status**: Active development
+**Next Review**: After V1 MVP launch
 

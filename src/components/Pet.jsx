@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import grassUrl         from '../assets/svgs/grass.svg'
 import TileMap          from './TileMap.jsx'
+import PathOverlay      from './PathOverlay.jsx'
 import FenceOverlay     from './FenceOverlay.jsx'
 import WorldProps, { WORLD_PROPS } from './WorldProps.jsx'
 import {
@@ -23,6 +24,10 @@ import './Pet.css'
 // ── Sprite direction row offsets (2.5× scale → 80px per row) ──
 const DIR_OFFSETS = { down: 0, up: -80, left: -160, right: -240 }
 
+// ── Ghost bud offset from main hare (px) ──
+const GHOST_OFFSET_X = 90
+const GHOST_OFFSET_Y = -10
+
 // ─────────────────────────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────────────────────────
@@ -33,6 +38,18 @@ function getPSTHour() {
 }
 function checkIsNight() {
   const h = getPSTHour(); return h >= 16 || h < 3
+}
+
+/**
+ * Return the area ID that contains pixel coordinate (x, y).
+ * col = floor(x / AREA_W), screenRow = floor(y / AREA_H)
+ * areaId = (2 - screenRow) * 3 + col   (row 0 = TL/TM/TR = areas 6/7/8)
+ * Clamped to the valid 3×3 grid.
+ */
+function getAreaAtPoint(x, y) {
+  const col       = Math.min(Math.max(Math.floor(x / AREA_W), 0), 2)
+  const screenRow = Math.min(Math.max(Math.floor(y / AREA_H), 0), 2)
+  return (2 - screenRow) * 3 + col
 }
 
 /** Random point inside one area, respecting MARGIN and hare size. */
@@ -112,10 +129,21 @@ function Pet({
   waterTrigger    = 0,
   unlockedAreas   = [0],
   onAte           = null,   // callback fired when hare finishes eating
+  level           = 1,      // current pet level
+  isLevelingUp    = false,  // true for 2s on level-up
+  onLevelUpComplete = null, // callback after flash animation ends
+  onPetClick      = null,   // callback when hare is clicked (for level popup)
+  isPaused        = false,  // true while level popup is open
+  ghostBudActive  = false,  // true while Ghost Bud ability is active
+  showLevelPopup  = false,  // controls in-world popup visibility
+  onCloseLevelPopup = null, // called when popup close is clicked
+  expInLevel      = 0,      // exp progress within the current level
+  expPct          = 0,      // percentage 0–100 toward next level
+  expPerLevel     = 100,    // exp required per level
 }) {
   const [petPos, setPetPos]         = useState({ x: SPAWN_X, y: SPAWN_Y })
   const [direction, setDirection]   = useState('right')
-  // 'idle' | 'going' | 'going_water' | 'eating' | 'drinking' | 'resting'
+  // 'idle' | 'going' | 'going_water' | 'eating' | 'drinking' | 'resting' | 'leveling'
   const [eatState, setEatState]     = useState('idle')
   // Grass patches: 1-2 per unlocked area, keyed by stable id
   const [grassPatches, setGrassPatches] = useState(() => makeGrassPatchesForAreas(unlockedAreas))
@@ -136,21 +164,58 @@ function Pet({
   const onAteRef           = useRef(onAte)            // always-current callback ref
   const restTargetRef      = useRef(null)             // tree destination when dying
   const arrivedAtTreeRef   = useRef(false)
+  const isPausedRef        = useRef(isPaused)         // up-to-date pause flag for movement loop
+  const isLevelingUpRef    = useRef(isLevelingUp)
+  const onLevelUpCompleteRef = useRef(onLevelUpComplete)
+  const onPetClickRef      = useRef(onPetClick)
+
+  // Keep refs in sync with latest props
+  useEffect(() => { onAteRef.current = onAte },                 [onAte])
+  useEffect(() => { isPausedRef.current = isPaused },           [isPaused])
+  useEffect(() => { isLevelingUpRef.current = isLevelingUp },   [isLevelingUp])
+  useEffect(() => { onLevelUpCompleteRef.current = onLevelUpComplete }, [onLevelUpComplete])
+  useEffect(() => { onPetClickRef.current = onPetClick },       [onPetClick])
 
   const avgStat = (pet.hunger + pet.thirst + pet.energy + pet.happiness) / 4
   const mood    = avgStat >= 80 ? 'happy' : avgStat >= 50 ? 'neutral' : avgStat >= 25 ? 'sad' : 'critical'
-  const isTired = pet.energy <= 0
+  const isTired = pet.energy <= 10
 
   // ── Keep refs in sync ─────────────────────────────────────────
   useEffect(() => { petPosRef.current    = petPos },           [petPos])
   useEffect(() => { grassPatchesRef.current = grassPatches }, [grassPatches])
   useEffect(() => { unlockedAreasRef.current = unlockedAreas }, [unlockedAreas])
 
+  // ── Generate new grass patches when new areas are unlocked ────
+  useEffect(() => {
+    const prev = prevUnlockedRef.current
+    const newlyUnlocked = unlockedAreas.filter(id => !prev.includes(id))
+    if (newlyUnlocked.length > 0) {
+      const newPatches = makeGrassPatchesForAreas(newlyUnlocked)
+      setGrassPatches(ps => [...ps, ...newPatches])
+    }
+    prevUnlockedRef.current = unlockedAreas
+  }, [unlockedAreas])
+
   // Day / night
   useEffect(() => {
     const id = setInterval(() => setIsNight(checkIsNight()), 60000)
     return () => clearInterval(id)
   }, [])
+
+  // ── Level-up animation (flashes for 4s then returns to idle) ──
+  useEffect(() => {
+    if (!isLevelingUp) return
+    // Interrupt current action, enter leveling state
+    eatStateRef.current = 'leveling'
+    setEatState('leveling')
+    const timer = setTimeout(() => {
+      eatStateRef.current = 'idle'
+      setEatState('idle')
+      wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+      if (onLevelUpCompleteRef.current) onLevelUpCompleteRef.current()
+    }, 4000)
+    return () => clearTimeout(timer)
+  }, [isLevelingUp])
 
   // ── Direction helper ──────────────────────────────────────────
   function updateDirection(dx, dy) {
@@ -178,7 +243,12 @@ function Pet({
     setArrivedAtTree(false)
 
     const pos = petPosRef.current
-    const trees = WORLD_PROPS.filter(p => p.interactType === 'rest')
+    const accessible = unlockedAreasRef.current
+    // Only walk to trees inside unlocked areas — prevents crossing fences into locked zones
+    const trees = WORLD_PROPS.filter(p =>
+      p.interactType === 'rest' &&
+      accessible.includes(getAreaAtPoint(p.x + p.displayW / 2, p.y + p.displayH / 2))
+    )
     if (trees.length === 0) {
       arrivedAtTreeRef.current = true
       setArrivedAtTree(true)
@@ -194,19 +264,23 @@ function Pet({
     }
   }, [isTired])
 
-  // ── Feed → find nearest visible grass and run ─────────────────
+  // ── Feed → find nearest visible grass in an accessible area ──
   useEffect(() => {
     if (feedTrigger === 0) return
     if (isTired) return
     if (eatStateRef.current !== 'idle') return
     const patches = grassPatchesRef.current
+    const accessible = unlockedAreasRef.current
     let bestIdx = -1, bestDist = Infinity
     const pos = petPosRef.current
     patches.forEach((g, i) => {
       if (!g.visible) return
+      // Only eat grass in areas the pet can access
+      if (!accessible.includes(g.areaId)) return
       const d = Math.hypot(pos.x - g.x, pos.y - g.y)
       if (d < bestDist) { bestDist = d; bestIdx = i }
     })
+    // No visible grass in accessible areas → don't trigger eating
     if (bestIdx === -1) return
     targetIdxRef.current = bestIdx
     targetPosRef.current = { x: patches[bestIdx].x, y: patches[bestIdx].y }
@@ -250,7 +324,34 @@ function Pet({
   // ── Main movement loop ────────────────────────────────────────
   useEffect(() => {
     const id = setInterval(() => {
+      // Pause movement when popup is open or level-up animation is playing
+      if (isPausedRef.current) return
+
       const state = eatStateRef.current
+
+      /**
+       * Clamp a proposed move (nx, ny) so the hare never enters a locked area.
+       * Uses the sprite centre for the area check.
+       * Tries full move → x-only slide → y-only slide → stay put.
+       * If stuck in place, picks a new wander target so the hare doesn't freeze.
+       */
+      const clampToUnlocked = (nx, ny, pos) => {
+        const unlocked = unlockedAreasRef.current
+        const cx = nx + HARE_PX / 2, cy = ny + HARE_PX / 2
+        if (unlocked.includes(getAreaAtPoint(cx, cy))) return { x: nx, y: ny }
+
+        // Try x-only
+        const cxX = nx + HARE_PX / 2, cyX = pos.y + HARE_PX / 2
+        if (unlocked.includes(getAreaAtPoint(cxX, cyX))) return { x: nx, y: pos.y }
+
+        // Try y-only
+        const cxY = pos.x + HARE_PX / 2, cyY = ny + HARE_PX / 2
+        if (unlocked.includes(getAreaAtPoint(cxY, cyY))) return { x: pos.x, y: ny }
+
+        // Fully blocked — stay put and pick a new wander target
+        wanderTargetRef.current = randomWanderTarget(unlocked)
+        return { x: pos.x, y: pos.y }
+      }
 
       // ── Dying walk toward nearest tree ────────────────────────
       if (isTired) {
@@ -265,15 +366,16 @@ function Pet({
           arrivedAtTreeRef.current = true; setArrivedAtTree(true)
           return
         }
-        const nx = pos.x + (dx / dist) * WALK_SPEED
-        const ny = pos.y + (dy / dist) * WALK_SPEED
+        const rawNx = pos.x + (dx / dist) * WALK_SPEED
+        const rawNy = pos.y + (dy / dist) * WALK_SPEED
+        const clamped = clampToUnlocked(rawNx, rawNy, pos)
         updateDirection(dx, dy)
-        petPosRef.current = { x: nx, y: ny }; setPetPos({ x: nx, y: ny })
+        petPosRef.current = clamped; setPetPos(clamped)
         return
       }
 
-      // ── Frozen states ─────────────────────────────────────────
-      if (state === 'eating' || state === 'drinking' || state === 'resting') return
+      // ── Frozen states (including leveling) ────────────────────
+      if (state === 'eating' || state === 'drinking' || state === 'resting' || state === 'leveling') return
 
       const pos = petPosRef.current
 
@@ -291,16 +393,19 @@ function Pet({
             eatStateRef.current = 'idle'; setEatState('idle')
             directionRef.current = 'left'; setDirection('left')
             wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+            // Fire hunger-update callback now that eating is complete
+            if (onAteRef.current) onAteRef.current()
             setTimeout(() => {
               setGrassPatches(ps => ps.map((g, i) => i === idx ? { ...g, visible: true } : g))
             }, 45000)
           }, 4000)
           return
         }
-        const nx = pos.x + (dx / dist) * RUN_SPEED
-        const ny = pos.y + (dy / dist) * RUN_SPEED
+        const rawNx = pos.x + (dx / dist) * RUN_SPEED
+        const rawNy = pos.y + (dy / dist) * RUN_SPEED
+        const clamped = clampToUnlocked(rawNx, rawNy, pos)
         updateDirection(dx, dy)
-        petPosRef.current = { x: nx, y: ny }; setPetPos({ x: nx, y: ny })
+        petPosRef.current = clamped; setPetPos(clamped)
         return
       }
 
@@ -318,10 +423,11 @@ function Pet({
           }, 4000)
           return
         }
-        const nx = pos.x + (dx / dist) * RUN_SPEED
-        const ny = pos.y + (dy / dist) * RUN_SPEED
+        const rawNx = pos.x + (dx / dist) * RUN_SPEED
+        const rawNy = pos.y + (dy / dist) * RUN_SPEED
+        const clampedW = clampToUnlocked(rawNx, rawNy, pos)
         updateDirection(dx, dy)
-        petPosRef.current = { x: nx, y: ny }; setPetPos({ x: nx, y: ny })
+        petPosRef.current = clampedW; setPetPos(clampedW)
         return
       }
 
@@ -333,19 +439,21 @@ function Pet({
         wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
         return
       }
-      const nx = pos.x + (dx / dist) * WALK_SPEED
-      const ny = pos.y + (dy / dist) * WALK_SPEED
+      const rawNx = pos.x + (dx / dist) * WALK_SPEED
+      const rawNy = pos.y + (dy / dist) * WALK_SPEED
+      const clampedI = clampToUnlocked(rawNx, rawNy, pos)
       updateDirection(dx, dy)
-      petPosRef.current = { x: nx, y: ny }; setPetPos({ x: nx, y: ny })
+      petPosRef.current = clampedI; setPetPos(clampedI)
     }, 50)
 
     return () => clearInterval(id)
   }, [isTired])
 
   // ── Derive sprite ─────────────────────────────────────────────
-  const isActionAnim = eatState === 'eating' || eatState === 'drinking'
-  const showDead     = isTired && arrivedAtTree
-  const dirOffset    = isActionAnim ? 0 : DIR_OFFSETS[direction]
+  const isLevelingState = eatState === 'leveling'
+  const isActionAnim    = eatState === 'eating' || eatState === 'drinking'
+  const showDead        = isTired && arrivedAtTree
+  const dirOffset       = isActionAnim ? 0 : DIR_OFFSETS[direction]
 
   const spriteUrl = showDead
     ? hareDeath
@@ -353,7 +461,7 @@ function Pet({
       ? hareEating
       : eatState === 'drinking'
         ? hareDrinking
-        : eatState === 'resting'
+        : (eatState === 'resting' || isLevelingState)
           ? hareIdle
           : (eatState === 'going' || eatState === 'going_water')
             ? hareRunShadow
@@ -367,17 +475,26 @@ function Pet({
         ? 'hare-state-drink'
         : eatState === 'resting'
           ? 'hare-state-rest'
-          : (eatState === 'going' || eatState === 'going_water')
-            ? 'hare-state-run'
-            : 'hare-state-walk'
+          : isLevelingState
+            ? 'hare-state-rest hare-levelup'  // idle pose + flash animation
+            : (eatState === 'going' || eatState === 'going_water')
+              ? 'hare-state-run'
+              : 'hare-state-walk'
 
   // Depth-sort z-index: foot of hare = petPos.y + HARE_PX
   const hareZ = Z_BASE + Math.round(petPos.y + HARE_PX)
+
+  // ── Ghost hare position (offset from main hare) ───────────────
+  const ghostPos = {
+    x: petPos.x + GHOST_OFFSET_X,
+    y: petPos.y + GHOST_OFFSET_Y,
+  }
 
   return (
     <div className={`world-scene mood-${mood}`}>
 
       <TileMap />
+      <PathOverlay />
       <WorldProps />
       <FenceOverlay unlockedAreas={unlockedAreas} />
 
@@ -419,18 +536,62 @@ function Pet({
         />
       ))}
 
-      {/* Hare — depth-sorted via dynamic z-index */}
+      {/* Ghost Bud — mirrors main hare at an offset with a white translucent tint */}
+      {ghostBudActive && (
+        <div
+          className={`hare-walker hare-ghost ${hareClass}`}
+          style={{
+            left:  `${ghostPos.x}px`,
+            top:   `${ghostPos.y}px`,
+            zIndex: hareZ - 1,
+            '--sprite-url': `url(${spriteUrl})`,
+            '--dir-offset': `${dirOffset}px`,
+          }}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Hare — depth-sorted via dynamic z-index; clickable for level popup */}
       <div
         className={`hare-walker mood-filter-${mood} ${hareClass}`}
         style={{
-          left:  `${petPos.x}px`,
-          top:   `${petPos.y}px`,
+          left:   `${petPos.x}px`,
+          top:    `${petPos.y}px`,
           zIndex: hareZ,
           '--sprite-url': `url(${spriteUrl})`,
           '--dir-offset': `${dirOffset}px`,
+          cursor: 'pointer',
+          pointerEvents: 'auto',
         }}
-        aria-label="Your pet hare"
+        onClick={() => { if (onPetClickRef.current) onPetClickRef.current() }}
+        aria-label="Your pet hare — click to see level"
+        title="Click to see level"
       />
+
+      {/* In-world level popup — floats above the hare */}
+      {showLevelPopup && (
+        <div
+          className="hare-level-popup"
+          style={{
+            left:   petPos.x + HARE_PX / 2,
+            top:    petPos.y - 12,
+            zIndex: hareZ + 200,
+          }}
+        >
+          <div className="hlp-star">⭐</div>
+          <div className="hlp-title">Level {level}</div>
+          <div className="hlp-exp">{expInLevel} / {expPerLevel} exp</div>
+          <div className="hlp-bar">
+            <div className="hlp-bar-fill" style={{ width: `${expPct}%` }} />
+          </div>
+          <button
+            className="hlp-close"
+            onClick={() => { if (onCloseLevelPopup) onCloseLevelPopup() }}
+          >
+            Close
+          </button>
+        </div>
+      )}
 
     </div>
   )

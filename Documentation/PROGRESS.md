@@ -1,7 +1,7 @@
 # 📋 V1 Build Progress
 
-**Last Updated**: March 22, 2026
-**Current Phase**: V1 MVP — Setup & Testing
+**Last Updated**: March 22, 2026 (scheduled task run — levels & abilities update)
+**Current Phase**: V1 MVP — Level System & Abilities
 **Status**: 🟡 In Progress
 
 ---
@@ -42,6 +42,36 @@
 - [x] `src/components/PomodoroTimer.css` — Timer styles
 - [x] `src/components/ActivityLog.jsx` — Real-time activity feed
 - [x] `src/components/ActivityLog.css` — Activity log styles
+- [x] `src/components/WorldProps.jsx` — All world props (trees, well, campfire, lamps, rocks, shadows, decor grass/flowers, forest cluster)
+- [x] `src/components/PathOverlay.jsx` — Dirt/cobblestone path TL→TM→MM→MR
+- [x] `src/components/TileMap.jsx` — Ground tile grid
+- [x] `src/components/FenceOverlay.jsx` — Area boundary fences
+
+### Level System & Abilities Update (March 22, 2026 — second pass)
+- [x] **Title renamed** — Header now reads "Virtual Pet v1" (was "Rompy")
+- [x] **Level system** — Pet gains +10 exp per "Play"; every 100 exp = level up; level stored in Firestore
+- [x] **Level badge** — ⭐ Lv.X badge shown in the game header
+- [x] **Click-to-inspect** — Clicking the hare opens a small popup showing current level, exp bar, and exp progress; movement pauses while popup is open
+- [x] **Level-up animation** — On level-up, pet stops and flashes for 2 seconds (golden flash via CSS animation), then resumes wandering
+- [x] **Abilities section** — Appears inside "Interact with Rompy" drawer; abilities show as locked (🔒) until the required level is reached
+- [x] **Ghost Bud (Lv.2)** — Summons a white translucent ghost hare for 15 seconds; mirrors the main hare's position at a fixed offset with matching animation
+- [x] **Extensible config** — `src/levelConfig.js` exposes `EXP_PER_LEVEL`, `PLAY_EXP_REWARD`, and `ABILITIES` array; add new abilities by appending to that array and adding a case in `useAbility()`
+
+### Visual & Gameplay Changes (March 22, 2026 — first pass)
+- [x] **Hunger system fix** — hunger only increases when pet actually eats real grass (`onAte` callback now fires correctly); +50 pts per meal (50% of max, up from +20)
+- [x] **Grass in accessible areas only** — feed trigger selects grass from unlocked areas only; no grass = no feeding possible
+- [x] **Area-unlock grass** — new grass patches are generated whenever new areas are purchased
+- [x] **Campfire visual** — switched to `prop_campfire2.png` (2.png frame set, 192×32 px); CSS updated to `background-size: 384px 64px`
+- [x] **Lamp scale** — reduced from 60×105 px to 40×70 px; glow radius increased to 90 px for proportionally brighter look
+- [x] **Well size** — increased from 64×64 px to 100×100 px; collision radius 38→52 px
+- [x] **Night-only glow** — already implemented; glow brightness increased (core opacity 0.50→0.72; campfire core 0.80)
+- [x] **Shadows** — added under tree_0,1,2,4,6, both lamps, and campfire using craftpix shadow assets 2–6; rendered at z=3 (above ground, below props)
+- [x] **Decorative grass bundles** — 2–5 grass blade sprites per bundle, spread across all 9 areas; some near/under tree bases
+- [x] **Decorative flower bundles** — 2–4 flower sprites per bundle in 7 areas
+- [x] **Forest cluster** — 8 additional trees (forest_8a–8h) densely placed in TR area (area 8)
+- [x] **Path overlay** — cobblestone path from TL through TM, down to MM, then right to MR; using craftpix ground tiles 28,30,34,36,38,41,54
+- [x] **Login streak** — daily login no longer awards coins; instead tracks consecutive login days (`loginStreak` in Firestore); 🔥 streak badge shown in header
+- [x] **Documentation** — new `WORLD_VISUALS.md` created; PROGRESS.md updated
 
 ---
 

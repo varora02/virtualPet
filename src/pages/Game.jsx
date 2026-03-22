@@ -5,6 +5,7 @@ import { auth, db } from '../firebase'
 import Pet from '../components/Pet'
 import PomodoroTimer from '../components/PomodoroTimer'
 import ActivityLog from '../components/ActivityLog'
+import { EXP_PER_LEVEL, PLAY_EXP_REWARD, ABILITIES } from '../levelConfig'
 import basketballUrl  from '../assets/svgs/basketball.svg'
 import soccerballUrl  from '../assets/svgs/soccerball.svg'
 import './Game.css'
@@ -16,7 +17,10 @@ const DEFAULT_PET = {
   energy: 80,
   happiness: 80,
   coins: 0,
+  experience: 0,
+  level: 1,
   lastLoginDate: null,
+  loginStreak: 0,
   ownedItems: [],
   unlockedAreas: [0],   // area 0 (bottom-left) always unlocked
   lastFed: null,
@@ -60,11 +64,23 @@ function Game({ user }) {
   const [waterTrigger, setWaterTrigger]   = useState(0)
   const [showShop, setShowShop]         = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+
+  // ── Level-up & popup state ────────────────────────────────────
+  const [isLevelingUp, setIsLevelingUp]   = useState(false)
+  const [showLevelPopup, setShowLevelPopup] = useState(false)
+
+  // ── Ability state ─────────────────────────────────────────────
+  const [ghostBudActive, setGhostBudActive] = useState(false)
+  const ghostBudTimerRef = useRef(null)
+
   const hasCheckedDaily                 = useRef(false)
   const petRef                          = useRef(pet)
   useEffect(() => { petRef.current = pet }, [pet])
 
   const userName = user.email.includes('varun') ? 'Varun' : 'GF'
+
+  // Compute level from experience (level 1 = 0–99 exp, level 2 = 100–199, etc.)
+  const computeLevel = (exp) => Math.floor((exp || 0) / EXP_PER_LEVEL) + 1
 
   // Real-time listener
   useEffect(() => {
@@ -79,17 +95,22 @@ function Game({ user }) {
         }
         setPet({ ...DEFAULT_PET, ...data })
 
-        // Daily login bonus — fires once per calendar day, first time pet loads
+        // Daily login streak — fires once per calendar day, first time pet loads
         if (!hasCheckedDaily.current) {
           hasCheckedDaily.current = true
           const today = new Date().toDateString()
           if (data.lastLoginDate !== today) {
-            const bonus = 5
+            // Calculate streak: consecutive day = yesterday's date?
+            const yesterday = new Date()
+            yesterday.setDate(yesterday.getDate() - 1)
+            const yesterdayStr = yesterday.toDateString()
+            const prevStreak = data.loginStreak || 0
+            const newStreak = data.lastLoginDate === yesterdayStr ? prevStreak + 1 : 1
             updateDoc(petRef, {
-              coins: (data.coins || 0) + bonus,
               lastLoginDate: today,
+              loginStreak: newStreak,
               activities: arrayUnion({
-                text: `${userName} logged in — daily bonus +${bonus} 🪙`,
+                text: `${userName} logged in — 🔥 ${newStreak} day streak!`,
                 user: userName,
                 timestamp: new Date().toISOString()
               })
@@ -146,10 +167,11 @@ function Game({ user }) {
 
   // Called by Pet.jsx when the hare completes eating a grass patch.
   // Uses petRef so the value of hunger is always current (not stale closure).
+  // Hunger rises by 50 (50% of max) per meal; only fires when real grass was eaten.
   const handleAte = () => {
     const p = petRef.current
     updatePet(
-      { hunger: Math.min(100, p.hunger + 20), happiness: Math.min(100, p.happiness + 5) },
+      { hunger: Math.min(100, p.hunger + 50), happiness: Math.min(100, p.happiness + 5) },
       `${userName} fed ${p.name} +1 🪙`,
       1
     )
@@ -165,18 +187,47 @@ function Game({ user }) {
     )
   }
 
-  const playWithPet = () => {
+  const playWithPet = async () => {
     if (pet.energy < 10) return
-    updatePet(
-      {
-        happiness: Math.min(100, pet.happiness + 15),
-        energy:    Math.max(0,   pet.energy    - 10),
-        hunger:    Math.max(0,   pet.hunger    - 5),
-        thirst:    Math.max(0,   pet.thirst    - 8),   // playing is thirsty work
-      },
-      `${userName} played with ${pet.name} +1 🪙`,
-      1
-    )
+
+    const currentExp   = pet.experience || 0
+    const currentLevel = pet.level || 1
+    const newExp       = currentExp + PLAY_EXP_REWARD
+    const newLevel     = computeLevel(newExp)
+    const didLevelUp   = newLevel > currentLevel
+
+    const statUpdates = {
+      happiness:  Math.min(100, pet.happiness + 15),
+      energy:     Math.max(0,   pet.energy    - 10),
+      hunger:     Math.max(0,   pet.hunger    - 5),
+      thirst:     Math.max(0,   pet.thirst    - 8),
+      experience: newExp,
+      level:      newLevel,
+    }
+
+    const activityText = didLevelUp
+      ? `${userName} played with ${pet.name} — Level Up! ⭐ Now level ${newLevel}! +1 🪙`
+      : `${userName} played with ${pet.name} +1 🪙`
+
+    await updatePet(statUpdates, activityText, 1)
+
+    if (didLevelUp) {
+      setIsLevelingUp(true)
+    }
+  }
+
+  // Called by Pet after the 2s level-up flash animation ends
+  const handleLevelUpComplete = () => {
+    setIsLevelingUp(false)
+  }
+
+  // Called when user clicks the hare — show level popup & pause movement
+  const handlePetClick = () => {
+    setShowLevelPopup(true)
+  }
+
+  const closeLevelPopup = () => {
+    setShowLevelPopup(false)
   }
 
   const restPet = () => {
@@ -196,6 +247,33 @@ function Game({ user }) {
       `${userName} finished a study session — ${pet.name} is proud +10 🪙`,
       10
     )
+  }
+
+  // ── Ability handlers ──────────────────────────────────────────
+
+  /**
+   * useAbility: dispatches the correct handler for a given ability id.
+   * Add new cases here as more abilities are introduced.
+   */
+  const useAbility = (abilityId) => {
+    switch (abilityId) {
+      case 'ghost_bud':
+        activateGhostBud()
+        break
+      default:
+        console.warn(`Unknown ability: ${abilityId}`)
+    }
+  }
+
+  const activateGhostBud = () => {
+    const ability = ABILITIES.find(a => a.id === 'ghost_bud')
+    if (!ability) return
+    if (ghostBudActive) return  // already active
+    setGhostBudActive(true)
+    if (ghostBudTimerRef.current) clearTimeout(ghostBudTimerRef.current)
+    ghostBudTimerRef.current = setTimeout(() => {
+      setGhostBudActive(false)
+    }, ability.duration)
   }
 
   const buyItem = async (itemId) => {
@@ -244,6 +322,8 @@ function Game({ user }) {
     try {
       await setDoc(petRef, { ...DEFAULT_PET, createdAt: serverTimestamp() })
       setShowResetConfirm(false)
+      setGhostBudActive(false)
+      setIsLevelingUp(false)
       setPetKey(k => k + 1)   // force Pet remount → hare respawns in BL area
     } catch (err) {
       console.error('Reset error:', err)
@@ -263,14 +343,21 @@ function Game({ user }) {
     )
   }
 
+  const currentLevel = pet.level || 1
+  const currentExp   = pet.experience || 0
+  const expInLevel   = currentExp % EXP_PER_LEVEL
+  const expPct       = Math.round((expInLevel / EXP_PER_LEVEL) * 100)
+
   return (
     <div className="game">
 
       {/* Header */}
       <header className="game-header">
-        <h1 className="game-title">Rompy</h1>
+        <h1 className="game-title">Virtual Pet v1</h1>
         <div className="header-right">
+          <span className="level-badge" title={`${expInLevel}/${EXP_PER_LEVEL} exp`}>⭐ Lv.{currentLevel}</span>
           <span className="coin-badge">🪙 {pet.coins || 0}</span>
+          <span className="streak-badge" title="Login streak">🔥 {pet.loginStreak || 0}</span>
           <span className="user-badge">
             {userName === 'Varun' ? '💙' : '💖'} {userName}
           </span>
@@ -297,7 +384,27 @@ function Game({ user }) {
 
       {/* World — constrained + centered */}
       <div className="world-full">
-        <Pet key={petKey} pet={pet} hasInteracted={hasInteracted} feedTrigger={feedTrigger} restTrigger={restTrigger} waterTrigger={waterTrigger} unlockedAreas={pet.unlockedAreas || [0]} onAte={handleAte} />
+        <Pet
+          key={petKey}
+          pet={pet}
+          hasInteracted={hasInteracted}
+          feedTrigger={feedTrigger}
+          restTrigger={restTrigger}
+          waterTrigger={waterTrigger}
+          unlockedAreas={pet.unlockedAreas || [0]}
+          onAte={handleAte}
+          level={currentLevel}
+          isLevelingUp={isLevelingUp}
+          onLevelUpComplete={handleLevelUpComplete}
+          onPetClick={handlePetClick}
+          isPaused={showLevelPopup}
+          ghostBudActive={ghostBudActive}
+          showLevelPopup={showLevelPopup}
+          onCloseLevelPopup={closeLevelPopup}
+          expInLevel={expInLevel}
+          expPct={expPct}
+          expPerLevel={EXP_PER_LEVEL}
+        />
       </div>
 
       {/* Bottom panels */}
@@ -317,11 +424,50 @@ function Game({ user }) {
               {showActions ? '▲ Close' : '🎮 Interact with Rompy'}
             </button>
             {showActions && (
-              <div className="actions">
-                <button className="action-btn feed"  onClick={feedPet}>🍎 Feed</button>
-                <button className="action-btn water" onClick={waterPet}>💧 Water</button>
-                <button className="action-btn play"  onClick={playWithPet}>🎾 Play</button>
-                <button className="action-btn rest"  onClick={restPet}>😴 Rest</button>
+              <div className="actions-container">
+                {/* Core actions */}
+                <div className="actions">
+                  <button className="action-btn feed"  onClick={feedPet}>🍎 Feed</button>
+                  <button className="action-btn water" onClick={waterPet}>💧 Water</button>
+                  <button className="action-btn play"  onClick={playWithPet}>🎾 Play</button>
+                  <button className="action-btn rest"  onClick={restPet}>😴 Rest</button>
+                </div>
+
+                {/* Abilities section */}
+                {ABILITIES.length > 0 && (
+                  <div className="abilities-section">
+                    <div className="abilities-label">✨ Abilities</div>
+                    <div className="abilities-list">
+                      {ABILITIES.map(ability => {
+                        const unlocked = currentLevel >= ability.requiredLevel
+                        const isActive = ability.id === 'ghost_bud' && ghostBudActive
+                        return (
+                          <div
+                            key={ability.id}
+                            className={`ability-item${unlocked ? '' : ' ability-locked'}${isActive ? ' ability-active' : ''}`}
+                          >
+                            <span className="ability-icon">{unlocked ? ability.icon : '🔒'}</span>
+                            <div className="ability-info">
+                              <span className="ability-name">{ability.name}</span>
+                              <span className="ability-desc">
+                                {unlocked
+                                  ? (isActive ? 'Active…' : ability.desc)
+                                  : `Unlocks at level ${ability.requiredLevel}`}
+                              </span>
+                            </div>
+                            <button
+                              className={`ability-btn${unlocked && !isActive ? '' : ' disabled'}`}
+                              onClick={() => unlocked && !isActive && useAbility(ability.id)}
+                              disabled={!unlocked || isActive}
+                            >
+                              {isActive ? '✓ Active' : unlocked ? 'Use' : `Lv.${ability.requiredLevel}`}
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -375,7 +521,7 @@ function Game({ user }) {
                     </div>
                   )
                 })}
-                <p className="shop-earn-tip">Earn: feed/water/play/rest +1 · study session +10 · daily login +5</p>
+                <p className="shop-earn-tip">Earn: feed/water/play/rest +1 · study session +10 · login streak 🔥 tracked daily</p>
               </div>
             )}
           </div>

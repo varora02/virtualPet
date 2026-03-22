@@ -18,15 +18,30 @@ const DEFAULT_PET = {
   coins: 0,
   lastLoginDate: null,
   ownedItems: [],
+  unlockedAreas: [0],   // area 0 (bottom-left) always unlocked
   lastFed: null,
   lastWatered: null,
   activities: []
 }
 
 const SHOP_ITEMS = [
-  { id: 'basketball',  name: 'Basketball',   imgUrl: null, icon: '🏀', cost: 50, desc: 'An orange ball Rompy loves to dribble' },
-  { id: 'soccerball',  name: 'Soccer Ball',  imgUrl: null, icon: '⚽', cost: 50, desc: 'A classic ball for a kick-around' },
-  { id: 'flower',      name: 'Flower Patch', imgUrl: null, icon: '🌸', cost: 50, desc: 'A pretty patch for the garden' },
+  { id: 'basketball', name: 'Basketball', imgUrl: null, icon: '🏀', cost: 50, desc: 'An orange ball Rompy loves to dribble' },
+  { id: 'soccerball', name: 'Soccer Ball', imgUrl: null, icon: '⚽', cost: 50, desc: 'A classic ball for a kick-around' },
+  // ── World area unlocks (sequential: 0 is always unlocked) ──
+  { id: 'area_1', name: 'Bottom Middle', icon: '🗺️', cost: 5, desc: 'Unlock the bottom-middle area for Rompy to explore' },
+  { id: 'area_2', name: 'Bottom Right',  icon: '🗺️', cost: 5, desc: 'Unlock the bottom-right area' },
+  { id: 'area_3', name: 'Middle Left',   icon: '🗺️', cost: 5, desc: 'Unlock the middle-left area' },
+  { id: 'area_4', name: 'Middle Center', icon: '🗺️', cost: 5, desc: 'Unlock the middle-center area' },
+  { id: 'area_5', name: 'Middle Right',  icon: '🗺️', cost: 5, desc: 'Unlock the middle-right area' },
+  { id: 'area_6', name: 'Top Left',      icon: '🗺️', cost: 5, desc: 'Unlock the top-left area' },
+  { id: 'area_7', name: 'Top Middle',    icon: '🗺️', cost: 5, desc: 'Unlock the top-middle area' },
+  { id: 'area_8', name: 'Top Right',     icon: '🗺️', cost: 5, desc: 'Unlock the top-right area — the whole world!' },
+]
+
+// Visual grouping for the shop UI
+const SHOP_SECTIONS = [
+  { id: 'toys',  label: '🧸 Toys',        itemIds: ['basketball', 'soccerball'] },
+  { id: 'areas', label: '🗺️ World Areas', itemIds: ['area_1','area_2','area_3','area_4','area_5','area_6','area_7','area_8'] },
 ]
 
 // Inject real SVG URLs after import (can't do this at module level before imports)
@@ -35,14 +50,19 @@ SHOP_ITEMS[1].imgUrl = soccerballUrl
 
 function Game({ user }) {
   const [pet, setPet]                   = useState(DEFAULT_PET)
+  const [petKey, setPetKey]             = useState(0)   // increment → forces Pet remount → respawn at SPAWN_X/Y
   const [loading, setLoading]           = useState(true)
   const [showActions, setShowActions]   = useState(false)
   const [showActivity, setShowActivity] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [feedTrigger, setFeedTrigger]   = useState(0)
-  const [restTrigger, setRestTrigger]   = useState(0)
+  const [feedTrigger, setFeedTrigger]     = useState(0)
+  const [restTrigger, setRestTrigger]     = useState(0)
+  const [waterTrigger, setWaterTrigger]   = useState(0)
   const [showShop, setShowShop]         = useState(false)
+  const [showResetConfirm, setShowResetConfirm] = useState(false)
   const hasCheckedDaily                 = useRef(false)
+  const petRef                          = useRef(pet)
+  useEffect(() => { petRef.current = pet }, [pet])
 
   const userName = user.email.includes('varun') ? 'Varun' : 'GF'
 
@@ -118,17 +138,26 @@ function Game({ user }) {
   }
 
   const feedPet = () => {
+    // Just send the hare toward grass — hunger only updates via onAte
+    // when the hare actually arrives and finishes eating.
     if (pet.hunger >= 100) return
     setFeedTrigger(n => n + 1)
+  }
+
+  // Called by Pet.jsx when the hare completes eating a grass patch.
+  // Uses petRef so the value of hunger is always current (not stale closure).
+  const handleAte = () => {
+    const p = petRef.current
     updatePet(
-      { hunger: Math.min(100, pet.hunger + 20), happiness: Math.min(100, pet.happiness + 5) },
-      `${userName} fed ${pet.name} +1 🪙`,
+      { hunger: Math.min(100, p.hunger + 20), happiness: Math.min(100, p.happiness + 5) },
+      `${userName} fed ${p.name} +1 🪙`,
       1
     )
   }
 
   const waterPet = () => {
     if (pet.thirst >= 100) return
+    setWaterTrigger(n => n + 1)
     updatePet(
       { thirst: Math.min(100, pet.thirst + 25), happiness: Math.min(100, pet.happiness + 3) },
       `${userName} gave ${pet.name} water +1 🪙`,
@@ -139,7 +168,12 @@ function Game({ user }) {
   const playWithPet = () => {
     if (pet.energy < 10) return
     updatePet(
-      { happiness: Math.min(100, pet.happiness + 15), energy: Math.max(0, pet.energy - 10), hunger: Math.max(0, pet.hunger - 5) },
+      {
+        happiness: Math.min(100, pet.happiness + 15),
+        energy:    Math.max(0,   pet.energy    - 10),
+        hunger:    Math.max(0,   pet.hunger    - 5),
+        thirst:    Math.max(0,   pet.thirst    - 8),   // playing is thirsty work
+      },
       `${userName} played with ${pet.name} +1 🪙`,
       1
     )
@@ -168,14 +202,28 @@ function Game({ user }) {
     const item = SHOP_ITEMS.find(i => i.id === itemId)
     if (!item) return
     if ((pet.coins || 0) < item.cost) return
-    if ((pet.ownedItems || []).includes(itemId)) return
+
+    const isAreaItem = itemId.startsWith('area_')
+    const areaId     = isAreaItem ? parseInt(itemId.split('_')[1]) : null
+    const unlocked   = pet.unlockedAreas || [0]
+
+    if (isAreaItem) {
+      if (unlocked.includes(areaId)) return                  // already unlocked
+      if (areaId > 0 && !unlocked.includes(areaId - 1)) return  // must unlock in order
+    } else {
+      if ((pet.ownedItems || []).includes(itemId)) return
+    }
+
     const petRef = doc(db, 'pets', 'shared-pet')
     try {
+      const itemUpdate = isAreaItem
+        ? { unlockedAreas: arrayUnion(areaId) }
+        : { ownedItems: arrayUnion(itemId) }
       await updateDoc(petRef, {
         coins: (pet.coins || 0) - item.cost,
-        ownedItems: arrayUnion(itemId),
+        ...itemUpdate,
         activities: arrayUnion({
-          text: `${userName} bought ${item.name} for Rompy! 🛍`,
+          text: `${userName} unlocked ${item.name} for Rompy! 🛍`,
           user: userName,
           timestamp: new Date().toISOString()
         })
@@ -189,6 +237,17 @@ function Game({ user }) {
     const petRef = doc(db, 'pets', 'shared-pet')
     try { await updateDoc(petRef, { activities: [] }) }
     catch (err) { console.error('Error clearing activity:', err) }
+  }
+
+  const resetGame = async () => {
+    const petRef = doc(db, 'pets', 'shared-pet')
+    try {
+      await setDoc(petRef, { ...DEFAULT_PET, createdAt: serverTimestamp() })
+      setShowResetConfirm(false)
+      setPetKey(k => k + 1)   // force Pet remount → hare respawns in BL area
+    } catch (err) {
+      console.error('Reset error:', err)
+    }
   }
 
   const handleLogout = async () => {
@@ -215,13 +274,30 @@ function Game({ user }) {
           <span className="user-badge">
             {userName === 'Varun' ? '💙' : '💖'} {userName}
           </span>
+          <button className="reset-btn" onClick={() => setShowResetConfirm(true)} title="Reset game state">↺ Reset</button>
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </header>
 
+      {/* Reset confirmation modal */}
+      {showResetConfirm && (
+        <div className="reset-overlay" onClick={() => setShowResetConfirm(false)}>
+          <div className="reset-modal" onClick={e => e.stopPropagation()}>
+            <h3 className="reset-modal-title">Reset Game?</h3>
+            <p className="reset-modal-body">
+              This will reset all stats, coins, owned items and unlocked areas back to defaults. Cannot be undone.
+            </p>
+            <div className="reset-modal-actions">
+              <button className="reset-confirm-btn" onClick={resetGame}>Yes, Reset</button>
+              <button className="reset-cancel-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* World — constrained + centered */}
       <div className="world-full">
-        <Pet pet={pet} hasInteracted={hasInteracted} feedTrigger={feedTrigger} restTrigger={restTrigger} />
+        <Pet key={petKey} pet={pet} hasInteracted={hasInteracted} feedTrigger={feedTrigger} restTrigger={restTrigger} waterTrigger={waterTrigger} unlockedAreas={pet.unlockedAreas || [0]} onAte={handleAte} />
       </div>
 
       {/* Bottom panels */}
@@ -257,31 +333,48 @@ function Game({ user }) {
             </button>
             {showShop && (
               <div className="shop-inline">
-                <div className="shop-items">
-                  {SHOP_ITEMS.map(item => {
-                    const owned  = (pet.ownedItems || []).includes(item.id)
-                    const canBuy = (pet.coins || 0) >= item.cost && !owned
-                    return (
-                      <div key={item.id} className={`shop-item${owned ? ' owned' : ''}`}>
-                        {item.imgUrl
-                          ? <img src={item.imgUrl} alt={item.name} className="shop-item-img" />
-                          : <span className="shop-item-icon">{item.icon}</span>
-                        }
-                        <div className="shop-item-info">
-                          <span className="shop-item-name">{item.name}</span>
-                          <span className="shop-item-desc">{item.desc}</span>
-                        </div>
-                        <button
-                          className={`shop-buy-btn${canBuy ? '' : ' disabled'}`}
-                          onClick={() => canBuy && buyItem(item.id)}
-                          disabled={!canBuy}
-                        >
-                          {owned ? '✓ Owned' : `🪙 ${item.cost}`}
-                        </button>
+                {SHOP_SECTIONS.map(section => {
+                  const sectionItems = section.itemIds.map(id => SHOP_ITEMS.find(i => i.id === id)).filter(Boolean)
+                  return (
+                    <div key={section.id} className="shop-group">
+                      <div className="shop-group-label">{section.label}</div>
+                      <div className="shop-items">
+                        {sectionItems.map(item => {
+                          const isAreaItem = item.id.startsWith('area_')
+                          const areaId     = isAreaItem ? parseInt(item.id.split('_')[1]) : null
+                          const unlocked   = pet.unlockedAreas || [0]
+
+                          const owned = isAreaItem
+                            ? unlocked.includes(areaId)
+                            : (pet.ownedItems || []).includes(item.id)
+
+                          const prerequisiteMissing = isAreaItem && areaId > 0 && !unlocked.includes(areaId - 1)
+                          const canBuy = (pet.coins || 0) >= item.cost && !owned && !prerequisiteMissing
+
+                          return (
+                            <div key={item.id} className={`shop-item${owned ? ' owned' : ''}${prerequisiteMissing ? ' locked' : ''}`}>
+                              {item.imgUrl
+                                ? <img src={item.imgUrl} alt={item.name} className="shop-item-img" />
+                                : <span className="shop-item-icon">{prerequisiteMissing ? '🔒' : item.icon}</span>
+                              }
+                              <div className="shop-item-info">
+                                <span className="shop-item-name">{item.name}</span>
+                                <span className="shop-item-desc">{prerequisiteMissing ? 'Unlock previous area first' : item.desc}</span>
+                              </div>
+                              <button
+                                className={`shop-buy-btn${canBuy ? '' : ' disabled'}`}
+                                onClick={() => canBuy && buyItem(item.id)}
+                                disabled={!canBuy}
+                              >
+                                {owned ? '✓ Owned' : prerequisiteMissing ? '🔒' : `🪙 ${item.cost}`}
+                              </button>
+                            </div>
+                          )
+                        })}
                       </div>
-                    )
-                  })}
-                </div>
+                    </div>
+                  )
+                })}
                 <p className="shop-earn-tip">Earn: feed/water/play/rest +1 · study session +10 · daily login +5</p>
               </div>
             )}

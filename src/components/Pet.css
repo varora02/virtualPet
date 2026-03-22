@@ -4,41 +4,127 @@
 .world-scene {
   position: relative;
   width: 100%;
-  height: 420px;
+  height: 768px;           /* 12 tiles × 64 px  (AREA_ROWS=4, GRID_H=3) */
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
 }
 
-/* Background SVG fills the scene */
-.world-bg {
+/* Night overlay — darkens the world above all props and the hare.
+   z-index 818 (Z_NIGHT = Z_BASE + SCENE_H + 40) puts it above all
+   depth-sorted content and above V-fences (Z_VFENCE=798).
+   Light glows sit above it at Z_GLOW=820. */
+.night-overlay {
   position: absolute;
   inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center bottom;
+  background: rgba(10, 20, 60, 0.55);
+  z-index: 818;
   pointer-events: none;
-  user-select: none;
 }
 
-/* ── Rompy ─────────────────────────── */
-/*
-  POSITION GUIDE — adjust these two values if Rompy is above/below the grass line:
-    bottom on .rompy-walker  → moves Rompy up (increase) or down (decrease)
-    bottom on .world-grass   → moves the grass clump up or down
-  Walk bounds are in Pet.jsx: WALK_LEFT (%) and WALK_RIGHT (%) constants.
-  GRASS_X (%) sets where the food patch appears horizontally.
-*/
-.rompy-walker {
+/* ── Hare sprite ────────────────────────────────────────
+  POSITION GUIDE:
+    left / top on .hare-walker → pixel coords (top-left of sprite)
+    Position is computed in Pet.jsx from petPos { x, y }
+
+  Sprite sheet layout (Hare_Walk_with_shadow.png etc.):
+    4 rows (directions) × N frames, each frame = 32×32px
+    ROW 0 = facing DOWN   |  ROW 1 = facing UP
+    ROW 2 = facing LEFT   |  ROW 3 = facing RIGHT
+    --dir-offset is set inline by Pet.jsx:
+      down  → 0px    up    → -80px
+      left  → -160px right → -240px
+
+  Scale = 2.5 → each 32px frame displays as 80×80px
+──────────────────────────────────────────────────────── */
+
+:root {
+  --hare-frame: 80px;   /* 32px × 2.5 — change this + background-sizes below */
+}
+
+.hare-walker {
   position: absolute;
-  bottom: 64px;           /* ← tweak this to move Rompy up/down */
-  z-index: 4;
-  width: 110px;
-  height: 110px;
-  object-fit: contain;
+  /* top / left set inline by Pet.jsx (pixel coords) */
+  /* z-index set inline via depth sort: Z_BASE + Math.round(y + HARE_PX) */
+  width:  var(--hare-frame);
+  height: var(--hare-frame);
   pointer-events: none;
   user-select: none;
+  background-image: var(--sprite-url);
+  background-repeat: no-repeat;
+  background-position-y: var(--dir-offset);   /* set by JSX: row 0–3 */
+  image-rendering: pixelated;
+  transform-origin: center bottom;
+}
+
+/* ── Idle walk (Hare_Walk_with_shadow: 5 frames, 160×128) ── */
+.hare-state-walk {
+  background-size: 400px 320px;   /* 160×2.5 = 400, 128×2.5 = 320 */
+  animation: hare-walk 0.55s steps(5) infinite;
+}
+@keyframes hare-walk {
+  from { background-position-x: 0; }
+  to   { background-position-x: -400px; }
+}
+
+/* ── Running to food (Hare_Run_with_shadow: 6 frames, 192×128) ── */
+.hare-state-run {
+  background-size: 480px 320px;   /* 192×2.5 = 480 */
+  animation: hare-run 0.4s steps(6) infinite;
+}
+@keyframes hare-run {
+  from { background-position-x: 0; }
+  to   { background-position-x: -480px; }
+}
+
+/* ── Eating (Hare_Eating.png: 5 frames reversed, strip 351×80) ── */
+/*    Displayed at 50px tall (0.625× scale) to match perceived walk sprite size.
+      frame_w = 351 × 0.625 / 5 = 43.9 ≈ 44px */
+.hare-state-eat {
+  width:  44px;
+  height: 50px;
+  background-size: 219px 50px;   /* 351×0.625 ≈ 219, 80×0.625 = 50 */
+  animation: hare-eat 4s steps(5) 1 forwards;  /* plays once, 4 s total */
+}
+@keyframes hare-eat {
+  from { background-position-x: 0; }
+  to   { background-position-x: -219px; }
+}
+
+/* ── Drinking (Hare_Drinking.png: 4 frames, strip 416×80) ── */
+/*    Displayed at 50px tall (0.625×); frame_w = 416 × 0.625 / 4 = 65px */
+.hare-state-drink {
+  width:  65px;
+  height: 50px;
+  background-size: 260px 50px;   /* 416×0.625 = 260, 80×0.625 = 50 */
+  animation: hare-drink 4s steps(4) 1 forwards;  /* plays once, 4 s total */
+}
+@keyframes hare-drink {
+  from { background-position-x: 0; }
+  to   { background-position-x: -260px; }
+}
+
+/* ── Resting (Hare_Idle: 4 frames, 128×128) ── */
+.hare-state-rest {
+  background-size: 320px 320px;
+  animation: hare-rest 1.2s steps(4) infinite;
+}
+@keyframes hare-rest {
+  from { background-position-x: 0; }
+  to   { background-position-x: -320px; }
+}
+
+/* ── Tired/dead (Hare_Death: 6 frames, 192×128) ── */
+/*    steps(5) + to:-400px = stops at the 6th frame (last visible).
+      Using -480px with steps(6) would park past the sheet → invisible. */
+.hare-state-dead {
+  background-size: 480px 320px;
+  animation: hare-die 0.8s steps(5) 1 forwards;  /* plays once, freezes on last frame */
+  filter: brightness(0.72) saturate(0.3);
+}
+@keyframes hare-die {
+  from { background-position-x: 0; }
+  to   { background-position-x: -400px; }  /* last frame = -400px, NOT -480px */
 }
 
 /* Mood colour filters */
@@ -47,65 +133,56 @@
 .mood-filter-sad      { filter: brightness(0.78) saturate(0.5) hue-rotate(15deg); }
 .mood-filter-critical { filter: brightness(0.65) grayscale(0.8); }
 
-/* Eating animation */
-.rompy-eating {
-  animation: eating-chew 0.45s ease-in-out infinite;
-}
-@keyframes eating-chew {
-  0%, 100% { filter: brightness(1.08) saturate(1.15); }
-  50%       { filter: brightness(0.94) saturate(0.88); }
-}
-
-/* Resting animation — slow gentle pulse */
-.rompy-resting {
-  animation: rompy-rest-pulse 1.2s ease-in-out infinite;
-}
-@keyframes rompy-rest-pulse {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0.72; }
-}
-
-/* Tired — desaturated, slightly dim */
-.rompy-tired {
-  filter: brightness(0.82) saturate(0.35) !important;
-}
-
 /* ── Grass food object ───────────────── */
 .world-grass {
   position: absolute;
-  bottom: 56px;           /* ← tweak this to move grass clump up/down */
-  z-index: 3;
+  z-index: 8;    /* above ground tiles, below depth-sorted props/hare (~394+) */
   width: 58px;
   height: 58px;
   object-fit: contain;
   pointer-events: none;
   user-select: none;
-  transform: translateX(-50%);
   transition: opacity 0.3s ease;
 }
 
-/* ── Butterfly decoration ───────────── */
-.world-butterfly {
+/* ── Campfire animated prop ──────────────────────────────────────
+   Source: prop_campfire.png — 6 frames × 32×64 px (192×64 total)
+   Displayed at 2×: each frame 64×128 px → sheet width 384×128 px
+──────────────────────────────────────────────────────────────── */
+.prop-campfire {
+  background-size: 384px 128px;   /* 192×2 = 384, 64×2 = 128 */
+  image-rendering: pixelated;
+  animation: campfire-anim 0.6s steps(6) infinite;
+}
+@keyframes campfire-anim {
+  from { background-position-x: 0; }
+  to   { background-position-x: -384px; }
+}
+
+/* ── Night light glows ───────────────────────────────────────────
+   Rendered in Pet.jsx for props with emitsLight: true.
+   z-index 820 (Z_GLOW) sits above the night overlay (818).
+   mix-blend-mode: screen punches warm light through the dark tint.
+──────────────────────────────────────────────────────────────── */
+.light-glow {
   position: absolute;
-  top: 18%;
-  z-index: 3;
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    rgba(255, 210, 100, 0.50) 0%,
+    rgba(255, 160,  50, 0.20) 45%,
+    transparent 70%
+  );
+  mix-blend-mode: screen;
   pointer-events: none;
   user-select: none;
-  animation: butterflyFloat 28s linear infinite;
-  opacity: 0.88;
 }
 
-@keyframes butterflyFloat {
-  0%   { left: -6%;  top: 22%; transform: scaleX(1) rotate(0deg); }
-  20%  { top: 14%; }
-  40%  { top: 28%; left: 42%; }
-  50%  { left: 45%; transform: scaleX(-1) rotate(0deg); } /* turn around */
-  70%  { top: 16%; }
-  90%  { top: 26%; }
-  100% { left: -6%; top: 22%; transform: scaleX(1) rotate(0deg); }
+/* Campfire glow flickers slightly */
+.campfire-glow {
+  animation: cf-flicker 0.14s ease-in-out infinite alternate;
 }
-
-/* Mood particles removed — emojis not shown in scene */
+@keyframes cf-flicker {
+  from { opacity: 0.82; transform: scale(0.94); }
+  to   { opacity: 1.00; transform: scale(1.06); }
+}

@@ -1,0 +1,397 @@
+/* ═══════════════════════════════════════
+   GAME SHELL
+═══════════════════════════════════════ */
+.game {
+  width: 100%;
+  max-width: 100%;
+  padding: 16px 20px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Header */
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(10px);
+  border-radius: 14px;
+  color: white;
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+.game-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.user-badge {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.logout-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: transparent;
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+.logout-btn:hover { background: rgba(255,255,255,0.18); }
+
+/* ── Coin badge ─────────────────────── */
+.coin-badge {
+  background: rgba(255, 215, 0, 0.22);
+  border: 1.5px solid rgba(255, 215, 0, 0.5);
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+
+.shop-btn {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.shop-btn:hover { background: rgba(255,255,255,0.24); }
+
+/* ── Inline shop section ─────────────── */
+.shop-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-toggle-btn {
+  width: 100%;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: 2px dashed #f0c060;
+  background: rgba(255, 215, 0, 0.07);
+  color: #8B6914;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.shop-toggle-btn:hover {
+  background: rgba(255, 215, 0, 0.16);
+  border-color: #d4a017;
+}
+
+.shop-inline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-items {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8f8f8;
+  border: 1.5px solid #eee;
+  transition: border-color 0.2s;
+}
+.shop-item:hover { border-color: #ddd; }
+.shop-item.owned { background: #f0fff4; border-color: #b2dfdb; }
+
+.shop-item-icon {
+  font-size: 2rem;
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Real SVG image in shop row */
+.shop-item-img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: rgba(0,0,0,0.03);
+  padding: 4px;
+}
+
+.shop-item-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shop-item-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.shop-item-desc {
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.shop-buy-btn {
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.shop-buy-btn:hover:not(.disabled) { transform: translateY(-1px); opacity: 0.9; }
+.shop-buy-btn.disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+.shop-buy-btn:disabled {
+  background: #e0e0e0;
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+/* Owned state: green checkmark style */
+.shop-item.owned .shop-buy-btn {
+  background: #2ecc71;
+}
+
+.shop-earn-tip {
+  font-size: 0.76rem;
+  color: #aaa;
+  text-align: center;
+  font-style: italic;
+  line-height: 1.5;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
+}
+
+/* ── World scene — centered, matches bottom panels ── */
+.world-full {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* ── Bottom two-column grid ─────────── */
+.game-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  align-items: start;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+/* ── Stats panel (left) ─────────────── */
+.stats-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+}
+
+/* Circular stats row */
+.circ-stats {
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding: 4px 0;
+}
+
+.circ-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.circ-label {
+  font-size: 0.68rem;
+  color: #888;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.circ-value {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #444;
+}
+
+/* ── Actions section ─────────────────── */
+.actions-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.actions-toggle-btn {
+  width: 100%;
+  padding: 11px 18px;
+  border-radius: 12px;
+  border: 2px dashed #9B8EC4;
+  background: rgba(155, 142, 196, 0.07);
+  color: #6B52A8;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.2s, border-color 0.2s;
+}
+.actions-toggle-btn:hover {
+  background: rgba(155, 142, 196, 0.16);
+  border-color: #6B52A8;
+}
+
+.actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.action-btn {
+  padding: 13px 8px;
+  border-radius: 14px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.12);
+}
+.action-btn:hover  { transform: translateY(-2px); box-shadow: 0 5px 16px rgba(0,0,0,0.16); }
+.action-btn:active { transform: translateY(0); }
+
+.action-btn.feed  { background: linear-gradient(135deg, #ff6b6b, #ee5a24); color: white; }
+.action-btn.water { background: linear-gradient(135deg, #74b9ff, #0984e3); color: white; }
+.action-btn.play  { background: linear-gradient(135deg, #a29bfe, #6c5ce7); color: white; }
+.action-btn.rest  { background: linear-gradient(135deg, #ffeaa7, #fdcb6e); color: #333; }
+
+/* ── Right panel ─────────────────────── */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Activity section ───────────────── */
+.activity-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+}
+
+.activity-header-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 16px;
+}
+
+.activity-toggle-btn {
+  flex: 1;
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 2px dashed #C8BFE8;
+  background: rgba(155, 142, 196, 0.06);
+  color: #7B6BAB;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  text-align: left;
+}
+.activity-toggle-btn:hover { background: rgba(155, 142, 196, 0.14); }
+
+.clear-activity-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: none;
+  background: #ffeaea;
+  color: #e74c3c;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+.clear-activity-btn:hover { background: #ffd5d5; }
+
+/* ── Loading screen ─────────────────── */
+.loading-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.loading-text {
+  color: white;
+  font-size: 1.2rem;
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+/* ── Responsive ─────────────────────── */
+@media (max-width: 600px) {
+  .game-bottom {
+    grid-template-columns: 1fr;
+  }
+  .game-title {
+    font-size: 1.2rem;
+  }
+}

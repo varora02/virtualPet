@@ -20,7 +20,7 @@ function App() {
   if (loading) {
     return (
       <div className="loading-screen">
-        <div className="loading-elephant">🐘</div>
+        <div className="loading-elephant">🐰</div>
         <p>Loading your pet...</p>
       </div>
     )

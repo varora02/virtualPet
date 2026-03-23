@@ -81,6 +81,21 @@
   margin-bottom: 6px;
 }
 
+.daily-goal {
+  font-size: 0.82rem;
+  color: #555;
+  margin-bottom: 6px;
+  background: rgba(102, 126, 234, 0.08);
+  border-radius: 8px;
+  padding: 4px 10px;
+}
+
+.daily-goal--done {
+  color: #27ae60;
+  background: rgba(46, 204, 113, 0.12);
+  font-weight: 600;
+}
+
 .pomodoro-tip {
   font-size: 0.76rem;
   color: #888;

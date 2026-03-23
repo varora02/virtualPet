@@ -8,7 +8,20 @@ import ActivityLog from '../components/ActivityLog'
 import { EXP_PER_LEVEL, PLAY_EXP_REWARD, ABILITIES } from '../levelConfig'
 import basketballUrl  from '../assets/svgs/basketball.svg'
 import soccerballUrl  from '../assets/svgs/soccerball.svg'
+import { WORLD_PROPS } from '../worldData'
 import './Game.css'
+
+const STORAGE_KEY = 'virtualpet_progression'
+// Unlock order: BL(0) → BM(1) → BR(2) → ML(3) → MM(4) → MR(5) → TL(6) → TM(7) → TR(8)
+// Area 0 is always pre-unlocked at tier 1; upgrades + new areas proceed from there.
+const PROGRESSION_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8]
+
+function loadProgression() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY)
+    return s ? JSON.parse(s) : null
+  } catch { return null }
+}
 
 const DEFAULT_PET = {
   name: 'Rompy',
@@ -25,27 +38,19 @@ const DEFAULT_PET = {
   unlockedAreas: [0],   // area 0 (bottom-left) always unlocked
   lastFed: null,
   lastWatered: null,
-  activities: []
+  activities: [],
+  todayStudySessions: 0,
+  lastStudyDate: null,
 }
 
 const SHOP_ITEMS = [
-  { id: 'basketball', name: 'Basketball', imgUrl: null, icon: '🏀', cost: 50, desc: 'An orange ball Rompy loves to dribble' },
-  { id: 'soccerball', name: 'Soccer Ball', imgUrl: null, icon: '⚽', cost: 50, desc: 'A classic ball for a kick-around' },
-  // ── World area unlocks (sequential: 0 is always unlocked) ──
-  { id: 'area_1', name: 'Bottom Middle', icon: '🗺️', cost: 5, desc: 'Unlock the bottom-middle area for Rompy to explore' },
-  { id: 'area_2', name: 'Bottom Right',  icon: '🗺️', cost: 5, desc: 'Unlock the bottom-right area' },
-  { id: 'area_3', name: 'Middle Left',   icon: '🗺️', cost: 5, desc: 'Unlock the middle-left area' },
-  { id: 'area_4', name: 'Middle Center', icon: '🗺️', cost: 5, desc: 'Unlock the middle-center area' },
-  { id: 'area_5', name: 'Middle Right',  icon: '🗺️', cost: 5, desc: 'Unlock the middle-right area' },
-  { id: 'area_6', name: 'Top Left',      icon: '🗺️', cost: 5, desc: 'Unlock the top-left area' },
-  { id: 'area_7', name: 'Top Middle',    icon: '🗺️', cost: 5, desc: 'Unlock the top-middle area' },
-  { id: 'area_8', name: 'Top Right',     icon: '🗺️', cost: 5, desc: 'Unlock the top-right area — the whole world!' },
+  { id: 'basketball', name: 'Basketball', imgUrl: null, icon: '🏀', cost: 1, desc: 'An orange ball Rompy loves to dribble' },
+  { id: 'soccerball', name: 'Soccer Ball', imgUrl: null, icon: '⚽', cost: 1, desc: 'A classic ball for a kick-around' },
 ]
 
-// Visual grouping for the shop UI
+// Visual grouping for the shop UI — area unlocks live in ProgressionRoadmap, not here
 const SHOP_SECTIONS = [
-  { id: 'toys',  label: '🧸 Toys',        itemIds: ['basketball', 'soccerball'] },
-  { id: 'areas', label: '🗺️ World Areas', itemIds: ['area_1','area_2','area_3','area_4','area_5','area_6','area_7','area_8'] },
+  { id: 'toys',  label: '🧸 Toys', itemIds: ['basketball', 'soccerball'] },
 ]
 
 // Inject real SVG URLs after import (can't do this at module level before imports)
@@ -53,17 +58,29 @@ SHOP_ITEMS[0].imgUrl = basketballUrl
 SHOP_ITEMS[1].imgUrl = soccerballUrl
 
 function Game({ user }) {
+  const _saved = loadProgression()
+  // Area 0 (BL) always starts at tier 1; player upgrades it before unlocking area 1
+  const [areaTiers, setAreaTiers] = useState(_saved?.areaTiers ?? { 0: 1 })
+
   const [pet, setPet]                   = useState(DEFAULT_PET)
   const [petKey, setPetKey]             = useState(0)   // increment → forces Pet remount → respawn at SPAWN_X/Y
   const [loading, setLoading]           = useState(true)
   const [showActions, setShowActions]   = useState(false)
   const [showActivity, setShowActivity] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
-  const [feedTrigger, setFeedTrigger]     = useState(0)
-  const [restTrigger, setRestTrigger]     = useState(0)
-  const [waterTrigger, setWaterTrigger]   = useState(0)
+  const [feedTrigger,        setFeedTrigger]        = useState(0)
+  const [restTrigger,        setRestTrigger]        = useState(0)
+  const [waterTrigger,       setWaterTrigger]       = useState(0)
+  const [studyTrigger,       setStudyTrigger]       = useState(0)
+  const [studyPauseTrigger,  setStudyPauseTrigger]  = useState(0)
+  const [studyResumeTrigger, setStudyResumeTrigger] = useState(0)
+  const [studyStopTrigger,   setStudyStopTrigger]   = useState(0)
+  const [celebrateTrigger,   setCelebrateTrigger]   = useState(0)
+  const studyStartedRef = useRef(false)  // true once hare has been sent to a tree
+  const [showStretchPopup, setShowStretchPopup] = useState(false)
   const [showShop, setShowShop]         = useState(false)
   const [showResetConfirm, setShowResetConfirm] = useState(false)
+  const [upgradedArea, setUpgradedArea] = useState(null)  // areaId that just upgraded → flash
 
   // ── Level-up & popup state ────────────────────────────────────
   const [isLevelingUp, setIsLevelingUp]   = useState(false)
@@ -72,10 +89,22 @@ function Game({ user }) {
   // ── Ability state ─────────────────────────────────────────────
   const [ghostBudActive, setGhostBudActive] = useState(false)
   const ghostBudTimerRef = useRef(null)
+  // Flash fires AFTER the shop closes — store the areaId here during purchase,
+  // then trigger setUpgradedArea when the modal's onClose fires.
+  const pendingFlashAreaRef = useRef(null)
 
   const hasCheckedDaily                 = useRef(false)
   const petRef                          = useRef(pet)
   useEffect(() => { petRef.current = pet }, [pet])
+
+  // ── Persist local progression to localStorage ─────────────────
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      areaTiers,
+      unlockedAreas: pet.unlockedAreas || [0],
+      coins: pet.coins || 0,
+    }))
+  }, [areaTiers, pet.unlockedAreas, pet.coins])
 
   const userName = user.email.includes('varun') ? 'Varun' : 'GF'
 
@@ -242,11 +271,52 @@ function Game({ user }) {
 
   const onPomodoroComplete = () => {
     setHasInteracted(true)
+    const today = new Date().toDateString()
+    const prevSessions = (pet.lastStudyDate === today) ? (pet.todayStudySessions || 0) : 0
+    const newTodaySessions = prevSessions + 1
     updatePet(
-      { hunger: Math.min(100, pet.hunger + 15), happiness: Math.min(100, pet.happiness + 20), energy: Math.min(100, pet.energy + 10) },
+      {
+        hunger: Math.min(100, pet.hunger + 15),
+        happiness: Math.min(100, pet.happiness + 20),
+        energy: Math.min(100, pet.energy + 10),
+        todayStudySessions: newTodaySessions,
+        lastStudyDate: today,
+      },
       `${userName} finished a study session — ${pet.name} is proud +10 🪙`,
       10
     )
+    // Post-session celebrations
+    setShowStretchPopup(true)
+    setCelebrateTrigger(n => n + 1)
+  }
+
+  // ── Study (Pomodoro) hare callbacks ───────────────────────────
+  // onStudyStart fires when the timer starts/resumes (work phase only).
+  // studyStartedRef tracks whether the hare has already reached a study tree
+  // (so subsequent resumes use studyResumeTrigger, not studyTrigger).
+  const handleStudyStart = () => {
+    if (!studyStartedRef.current) {
+      studyStartedRef.current = true
+      setStudyTrigger(n => n + 1)   // hare walks to nearest tree
+    } else {
+      setStudyResumeTrigger(n => n + 1)   // hare already at tree → resume rows 3+4
+    }
+  }
+  const handleStudyPause = () => {
+    setStudyPauseTrigger(n => n + 1)
+  }
+  const handleStudyStop = () => {
+    studyStartedRef.current = false
+    setStudyStopTrigger(n => n + 1)   // hare returns to idle wander
+  }
+
+  const handleStretchYes = () => {
+    updatePet(
+      { energy: Math.min(100, pet.energy + 3) },
+      `${userName} stretched — Rompy is happy! +3 energy ✨`,
+      0
+    )
+    setShowStretchPopup(false)
   }
 
   // ── Ability handlers ──────────────────────────────────────────
@@ -311,6 +381,72 @@ function Game({ user }) {
     }
   }
 
+  // ── Tier progression ──────────────────────────────────────────
+  // Area 0 (BL) is always tier 1 from the start. Progression:
+  //   Upgrade area 0 T1→T2→T3, then unlock area 1 at T1, upgrade T2→T3, unlock area 2, etc.
+  //   After all 9 areas reach T3: offer the path unlock.
+  const allAreasMaxed = PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
+  const pathUnlocked  = pet.pathUnlocked === true
+
+  function getNextUpgrade() {
+    for (let i = 0; i < PROGRESSION_ORDER.length; i++) {
+      const areaId     = PROGRESSION_ORDER[i]
+      const tier       = areaTiers[areaId] ?? 0
+      // Area 0 is pre-unlocked — if somehow tier is 0, treat it as tier 1
+      const effectiveTier = (i === 0 && tier === 0) ? 1 : tier
+      const isUnlocked    = effectiveTier > 0
+
+      if (!isUnlocked) {
+        // Area not yet unlocked — only show if previous area is T3
+        const prevArea = PROGRESSION_ORDER[i - 1]
+        if ((areaTiers[prevArea] ?? 0) < 3) break  // previous not maxed, stop here
+        return { type: 'unlock', areaId, cost: 1 }
+      }
+      if (effectiveTier < 3) {
+        return { type: 'tier', areaId, fromTier: effectiveTier, toTier: effectiveTier + 1, cost: 1 }
+      }
+    }
+    // All areas at T3 — offer the path as the final unlock
+    if (allAreasMaxed && !pathUnlocked) {
+      return { type: 'path', cost: 1 }
+    }
+    return null
+  }
+
+  const handleProgressionPurchase = async () => {
+    const next = getNextUpgrade()
+    if (!next) return
+    if ((pet.coins || 0) < next.cost) return
+    const petRef = doc(db, 'pets', 'shared-pet')
+    try {
+      const areaUpdate = next.type === 'unlock'
+        ? { unlockedAreas: arrayUnion(next.areaId) }
+        : next.type === 'path'
+          ? { pathUnlocked: true }
+          : {}
+      const activityText = next.type === 'unlock'
+        ? `${userName} unlocked area ${next.areaId}! 🗺️`
+        : next.type === 'path'
+          ? `${userName} unlocked the world path! 🛤️`
+          : `${userName} upgraded area ${next.areaId} to tier ${next.toTier}! ⭐`
+      await updateDoc(petRef, {
+        coins: (pet.coins || 0) - next.cost,
+        ...areaUpdate,
+        activities: arrayUnion({ text: activityText, user: userName, timestamp: new Date().toISOString() })
+      })
+      if (next.type === 'unlock') {
+        setAreaTiers(prev => ({ ...prev, [next.areaId]: 1 }))
+        pendingFlashAreaRef.current = next.areaId   // fires when shop closes
+      } else if (next.type === 'tier') {
+        setAreaTiers(prev => ({ ...prev, [next.areaId]: next.toTier }))
+        pendingFlashAreaRef.current = next.areaId   // fires when shop closes
+      }
+      // path: pathUnlocked derives from areaTiers in Firestore; pet state will update via onSnapshot
+    } catch (err) {
+      console.error('Progression purchase error:', err)
+    }
+  }
+
   const clearActivity = async () => {
     const petRef = doc(db, 'pets', 'shared-pet')
     try { await updateDoc(petRef, { activities: [] }) }
@@ -321,9 +457,13 @@ function Game({ user }) {
     const petRef = doc(db, 'pets', 'shared-pet')
     try {
       await setDoc(petRef, { ...DEFAULT_PET, createdAt: serverTimestamp() })
+      // Reset local tier state and wipe persisted progression from localStorage
+      setAreaTiers({ 0: 1 })
+      localStorage.removeItem(STORAGE_KEY)
       setShowResetConfirm(false)
       setGhostBudActive(false)
       setIsLevelingUp(false)
+      studyStartedRef.current = false
       setPetKey(k => k + 1)   // force Pet remount → hare respawns in BL area
     } catch (err) {
       console.error('Reset error:', err)
@@ -347,6 +487,19 @@ function Game({ user }) {
   const currentExp   = pet.experience || 0
   const expInLevel   = currentExp % EXP_PER_LEVEL
   const expPct       = Math.round((expInLevel / EXP_PER_LEVEL) * 100)
+
+  // ── Daily study goal (seeded by date, changes each day) ──────
+  const _today = new Date()
+  const _seed  = _today.getFullYear() * 10000 + (_today.getMonth() + 1) * 100 + _today.getDate()
+  const dailyGoal = 2 + (_seed % 3)  // 2, 3, or 4 depending on the day
+  const todayStr  = _today.toDateString()
+  const todaySessions = (pet.lastStudyDate === todayStr) ? (pet.todayStudySessions || 0) : 0
+
+  // Show tier-1 props for any area that's Firestore-unlocked but not yet in the new tier system.
+  const visibleProps = WORLD_PROPS.filter(p => {
+    const areaTier = areaTiers[p.areaId] ?? ((pet.unlockedAreas || [0]).includes(p.areaId) ? 1 : 0)
+    return (p.tier ?? 1) <= areaTier
+  })
 
   return (
     <div className="game">
@@ -391,7 +544,13 @@ function Game({ user }) {
           feedTrigger={feedTrigger}
           restTrigger={restTrigger}
           waterTrigger={waterTrigger}
+          studyTrigger={studyTrigger}
+          studyPauseTrigger={studyPauseTrigger}
+          studyResumeTrigger={studyResumeTrigger}
+          studyStopTrigger={studyStopTrigger}
+          celebrateTrigger={celebrateTrigger}
           unlockedAreas={pet.unlockedAreas || [0]}
+          visibleProps={visibleProps}
           onAte={handleAte}
           level={currentLevel}
           isLevelingUp={isLevelingUp}
@@ -404,6 +563,9 @@ function Game({ user }) {
           expInLevel={expInLevel}
           expPct={expPct}
           expPerLevel={EXP_PER_LEVEL}
+          pathVisible={pet.pathUnlocked === true}
+          areaTiers={areaTiers}
+          upgradedArea={upgradedArea}
         />
       </div>
 
@@ -472,64 +634,25 @@ function Game({ user }) {
             )}
           </div>
 
-          {/* Inline shop toggle */}
+          {/* Shop button — opens modal */}
           <div className="shop-section">
-            <button className="shop-toggle-btn" onClick={() => setShowShop(s => !s)}>
-              {showShop ? '▲ Close Shop' : `🛍 Shop  ·  🪙 ${pet.coins || 0}`}
+            <button className="shop-toggle-btn" onClick={() => setShowShop(true)}>
+              🛍 Shop  ·  🪙 {pet.coins || 0}
             </button>
-            {showShop && (
-              <div className="shop-inline">
-                {SHOP_SECTIONS.map(section => {
-                  const sectionItems = section.itemIds.map(id => SHOP_ITEMS.find(i => i.id === id)).filter(Boolean)
-                  return (
-                    <div key={section.id} className="shop-group">
-                      <div className="shop-group-label">{section.label}</div>
-                      <div className="shop-items">
-                        {sectionItems.map(item => {
-                          const isAreaItem = item.id.startsWith('area_')
-                          const areaId     = isAreaItem ? parseInt(item.id.split('_')[1]) : null
-                          const unlocked   = pet.unlockedAreas || [0]
-
-                          const owned = isAreaItem
-                            ? unlocked.includes(areaId)
-                            : (pet.ownedItems || []).includes(item.id)
-
-                          const prerequisiteMissing = isAreaItem && areaId > 0 && !unlocked.includes(areaId - 1)
-                          const canBuy = (pet.coins || 0) >= item.cost && !owned && !prerequisiteMissing
-
-                          return (
-                            <div key={item.id} className={`shop-item${owned ? ' owned' : ''}${prerequisiteMissing ? ' locked' : ''}`}>
-                              {item.imgUrl
-                                ? <img src={item.imgUrl} alt={item.name} className="shop-item-img" />
-                                : <span className="shop-item-icon">{prerequisiteMissing ? '🔒' : item.icon}</span>
-                              }
-                              <div className="shop-item-info">
-                                <span className="shop-item-name">{item.name}</span>
-                                <span className="shop-item-desc">{prerequisiteMissing ? 'Unlock previous area first' : item.desc}</span>
-                              </div>
-                              <button
-                                className={`shop-buy-btn${canBuy ? '' : ' disabled'}`}
-                                onClick={() => canBuy && buyItem(item.id)}
-                                disabled={!canBuy}
-                              >
-                                {owned ? '✓ Owned' : prerequisiteMissing ? '🔒' : `🪙 ${item.cost}`}
-                              </button>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-                <p className="shop-earn-tip">Earn: feed/water/play/rest +1 · study session +10 · login streak 🔥 tracked daily</p>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Right: Pomodoro + Activity toggle */}
         <div className="right-panel">
-          <PomodoroTimer onComplete={onPomodoroComplete} userName={userName} />
+          <PomodoroTimer
+            onComplete={onPomodoroComplete}
+            userName={userName}
+            onStudyStart={handleStudyStart}
+            onStudyPause={handleStudyPause}
+            onStudyStop={handleStudyStop}
+            dailyGoal={dailyGoal}
+            todaySessions={todaySessions}
+          />
 
           <div className="activity-section">
             <div className="activity-header-row">
@@ -546,7 +669,47 @@ function Game({ user }) {
 
       </div>
 
-      {/* Shop modal removed — shop is now inline under stats panel */}
+      {/* ── Stretch Popup ──────────────────────────────────────── */}
+      {showStretchPopup && (
+        <div className="stretch-overlay" onClick={() => setShowStretchPopup(false)}>
+          <div className="stretch-modal" onClick={e => e.stopPropagation()}>
+            <div className="stretch-rompy">🐰</div>
+            <h3 className="stretch-title">Rompy wants to stretch!</h3>
+            <p className="stretch-body">Did you stand up and take a breather?</p>
+            <div className="stretch-actions">
+              <button className="stretch-btn stretch-yes" onClick={handleStretchYes}>
+                Yes! 🙆 <span className="stretch-bonus">+3 energy</span>
+              </button>
+              <button className="stretch-btn stretch-no" onClick={() => setShowStretchPopup(false)}>
+                Not yet
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Shop Modal ─────────────────────────────────────────── */}
+      {showShop && (
+        <ShopModal
+          pet={pet}
+          coins={pet.coins || 0}
+          areaTiers={areaTiers}
+          unlockedAreas={pet.unlockedAreas || [0]}
+          getNextUpgrade={getNextUpgrade}
+          onBuy={handleProgressionPurchase}
+          pathUnlocked={pet.pathUnlocked === true}
+          onBuyItem={buyItem}
+          onClose={() => {
+            setShowShop(false)
+            // Trigger upgrade flash now that the shop is closed
+            if (pendingFlashAreaRef.current !== null) {
+              setUpgradedArea(pendingFlashAreaRef.current)
+              pendingFlashAreaRef.current = null
+              setTimeout(() => setUpgradedArea(null), 3000)
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -576,6 +739,170 @@ function CircStat({ label, value, color, emoji }) {
       </svg>
       <span className="circ-label">{label}</span>
       <span className="circ-value">{Math.round(pct)}%</span>
+    </div>
+  )
+}
+
+const AREA_LABELS = {
+  0: 'Bottom Left', 1: 'Bottom Mid', 2: 'Bottom Right',
+  3: 'Mid Left',    4: 'Center',     5: 'Mid Right',
+  6: 'Top Left',    7: 'Top Mid',    8: 'Top Right',
+}
+
+// ── Shop Modal ────────────────────────────────────────────────────────────────
+function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, onBuy, pathUnlocked, onBuyItem, onClose }) {
+  const [activeTab, setActiveTab] = useState('items')
+  const next = getNextUpgrade()
+  const allAreasDone = PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
+
+  return (
+    <div className="shop-modal-overlay" onClick={onClose}>
+      <div className="shop-modal" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="shop-modal-header">
+          <span className="shop-modal-title">🛍️ Rompy&apos;s Shop</span>
+          <span className="shop-modal-coins">🪙 {coins}</span>
+          <button className="shop-modal-close" onClick={onClose}>✕</button>
+        </div>
+
+        {/* Tabs */}
+        <div className="shop-modal-tabs">
+          <button
+            className={`shop-tab-btn${activeTab === 'items' ? ' active' : ''}`}
+            onClick={() => setActiveTab('items')}
+          >🧸 Items</button>
+          <button
+            className={`shop-tab-btn${activeTab === 'world' ? ' active' : ''}`}
+            onClick={() => setActiveTab('world')}
+          >🗺️ World</button>
+        </div>
+
+        {/* Body */}
+        <div className="shop-modal-body">
+
+          {/* ── Items tab ─────────────────────────────────── */}
+          {activeTab === 'items' && (
+            <div className="shop-items-tab">
+              <div className="shop-card-grid">
+                {SHOP_ITEMS.map(item => {
+                  const owned     = (pet.ownedItems || []).includes(item.id)
+                  const canAfford = coins >= item.cost
+                  const btnClass  = owned ? 'owned-state' : canAfford ? 'can-buy' : 'cant-afford'
+                  return (
+                    <div
+                      key={item.id}
+                      className={`shop-card${owned ? ' owned' : ''}${!canAfford && !owned ? ' poor' : ''}`}
+                    >
+                      <div className="shop-card-art">
+                        {item.imgUrl
+                          ? <img src={item.imgUrl} alt={item.name} className="shop-card-img" />
+                          : <span className="shop-card-icon">{item.icon}</span>
+                        }
+                      </div>
+                      <span className="shop-card-name">{item.name}</span>
+                      <span className="shop-card-desc">{item.desc}</span>
+                      <button
+                        className={`shop-card-btn ${btnClass}`}
+                        onClick={() => !owned && canAfford && onBuyItem(item.id)}
+                        disabled={owned || !canAfford}
+                      >
+                        {owned ? '✓ Owned' : `🪙 ${item.cost}  Buy`}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="shop-earn-tip">💡 Complete sessions, feed Rompy, and play to earn 🪙</p>
+            </div>
+          )}
+
+          {/* ── World tab ─────────────────────────────────── */}
+          {activeTab === 'world' && (
+            <div className="shop-world-body">
+
+              {/* World Progression section */}
+              <div className="shop-world-section-label">🗺️ World Progression</div>
+              <div className="shop-progression-list">
+                {PROGRESSION_ORDER.map((areaId, i) => {
+                  const isUnlocked = areaId === 0 ? true : unlockedAreas.includes(areaId)
+                  const tier       = areaTiers[areaId] ?? (areaId === 0 ? 1 : 0)
+                  const isCurrent  = next && next.type !== 'path' && next.areaId === areaId
+                  const isDone     = isUnlocked && tier >= 3
+
+                  return (
+                    <div
+                      key={areaId}
+                      className={`shop-prog-row${isCurrent ? ' current' : ''}${isDone ? ' done' : ''}${!isUnlocked && !isCurrent ? ' locked' : ''}`}
+                    >
+                      <span className="shop-prog-num">{i + 1}.</span>
+                      <span className="shop-prog-name">{AREA_LABELS[areaId]}</span>
+                      <span className="shop-prog-tiers">
+                        {[1, 2, 3].map(t => (
+                          <span
+                            key={t}
+                            className={`shop-tier-pip${tier >= 3 ? ' full' : tier >= t ? ' filled' : ''}`}
+                          >T{t}</span>
+                        ))}
+                      </span>
+                      {isDone && <span className="shop-prog-check">✓</span>}
+                      {isCurrent && (
+                        <button
+                          className={`shop-prog-buy-btn${coins >= next.cost ? '' : ' disabled'}`}
+                          onClick={onBuy}
+                          disabled={coins < next.cost}
+                        >
+                          {next.type === 'unlock' ? '🔓 Unlock' : `⬆️ T${next.toTier}`} · 🪙{next.cost}
+                        </button>
+                      )}
+                      {!isUnlocked && !isCurrent && (
+                        <span className="shop-prog-lock">🔒</span>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* Special Unlockables section */}
+              <div className="shop-world-section-label shop-world-section-label--special">✨ Special Unlockables</div>
+              <div className="shop-special-note">Unlock all 9 world tiers to reveal these.</div>
+              <div className="shop-progression-list">
+
+                {/* World Path */}
+                <div className={`shop-prog-row${next?.type === 'path' ? ' current' : ''}${pathUnlocked ? ' done' : ''}${!allAreasDone && !pathUnlocked ? ' locked' : ''}`}>
+                  <span className="shop-prog-num">1.</span>
+                  <span className="shop-prog-name">🛤️ World Path</span>
+                  <span className="shop-prog-desc">Connects all regions</span>
+                  {pathUnlocked && <span className="shop-prog-check">✓</span>}
+                  {!pathUnlocked && next?.type === 'path' && (
+                    <button
+                      className={`shop-prog-buy-btn${coins >= next.cost ? '' : ' disabled'}`}
+                      onClick={onBuy}
+                      disabled={coins < next.cost}
+                    >🔓 Unlock · 🪙{next.cost}</button>
+                  )}
+                  {!pathUnlocked && next?.type !== 'path' && (
+                    <span className="shop-prog-lock">🔒</span>
+                  )}
+                </div>
+
+                {/* Future unlockables placeholder */}
+                <div className="shop-prog-row locked">
+                  <span className="shop-prog-num">2.</span>
+                  <span className="shop-prog-name">🏰 More coming soon…</span>
+                  <span className="shop-prog-lock">🔒</span>
+                </div>
+
+              </div>
+
+              {!next && pathUnlocked && (
+                <div className="shop-world-complete">✨ World fully unlocked — you&apos;re amazing!</div>
+              )}
+            </div>
+          )}
+
+        </div>
+      </div>
     </div>
   )
 }

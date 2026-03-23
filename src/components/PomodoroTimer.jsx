@@ -4,7 +4,16 @@ import './PomodoroTimer.css'
 const WORK_DURATION = 25 * 60 // 25 minutes in seconds
 const BREAK_DURATION = 5 * 60 // 5 minutes
 
-function PomodoroTimer({ onComplete, userName }) {
+function PomodoroTimer({
+  onComplete,
+  userName,
+  onStudyStart  = null,   // fired when work timer starts (not during break)
+  onStudyPause  = null,   // fired when timer is paused
+  onStudyResume = null,   // fired when timer resumes after a pause
+  onStudyStop   = null,   // fired when timer is reset / session ends
+  dailyGoal     = null,   // target sessions for today (2–4)
+  todaySessions = 0,      // sessions completed today (from Firestore)
+}) {
   const [timeLeft, setTimeLeft] = useState(WORK_DURATION)
   const [isRunning, setIsRunning] = useState(false)
   const [isBreak, setIsBreak] = useState(false)
@@ -22,6 +31,7 @@ function PomodoroTimer({ onComplete, userName }) {
         // Work session completed
         setSessionsCompleted(prev => prev + 1)
         onComplete()
+        if (onStudyStop) onStudyStop()   // session done → hare returns to idle
         setIsBreak(true)
         setTimeLeft(BREAK_DURATION)
         setIsRunning(false)
@@ -37,7 +47,19 @@ function PomodoroTimer({ onComplete, userName }) {
   }, [isRunning, timeLeft])
 
   const toggleTimer = () => {
-    setIsRunning(!isRunning)
+    const nextRunning = !isRunning
+    setIsRunning(nextRunning)
+    if (nextRunning) {
+      // Starting or resuming
+      if (!isBreak) {
+        // First start (studyTrigger) vs resume after pause (studyResumeTrigger).
+        // We fire onStudyStart for both: Game.jsx tracks whether hare is already at tree.
+        if (onStudyStart) onStudyStart()
+      }
+    } else {
+      // Pausing
+      if (!isBreak && onStudyPause) onStudyPause()
+    }
   }
 
   const resetTimer = () => {
@@ -45,6 +67,7 @@ function PomodoroTimer({ onComplete, userName }) {
     setIsRunning(false)
     setIsBreak(false)
     setTimeLeft(WORK_DURATION)
+    if (onStudyStop) onStudyStop()
   }
 
   const minutes = Math.floor(timeLeft / 60)
@@ -57,6 +80,15 @@ function PomodoroTimer({ onComplete, userName }) {
       <h3 className="pomodoro-title">
         {isBreak ? '☕ Break Time' : '📚 Study Session'}
       </h3>
+
+      {dailyGoal !== null && (
+        <div className={`daily-goal${todaySessions >= dailyGoal ? ' daily-goal--done' : ''}`}>
+          🎯 Today&apos;s goal: {Math.min(todaySessions, dailyGoal)}/{dailyGoal}
+          {todaySessions >= dailyGoal
+            ? ' 🎉 Goal reached!'
+            : ` · ${dailyGoal - todaySessions} to go`}
+        </div>
+      )}
 
       <div className="timer-ring">
         <svg viewBox="0 0 120 120" className="timer-svg">

@@ -14,7 +14,7 @@ function Login() {
     setError('')
     setLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      await signInWithEmailAndPassword(auth, email.trim(), password)
     } catch (err) {
       setError('Invalid email or password.')
       setLoading(false)

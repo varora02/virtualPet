@@ -244,6 +244,37 @@
   transition: opacity 0.3s ease;
 }
 
+/* ── Reading / studying (Hare_reading_with_shadow: 6 frames × 4 rows, 1024×682) ──
+   Source frame: ~170×170 px → displayed at 80×80 px
+   background-size: 6×80=480 wide × 4×80=320 tall
+   Row layout (background-position-y):
+     Row 1 = 0px     ← shown when study is paused/stopped
+     Row 2 = -80px
+     Row 3 = -160px  ← loop start for active study
+     Row 4 = -240px  ← loop end  for active study
+────────────────────────────────────────────────────────────────── */
+.hare-state-study {
+  background-size: 480px 320px;
+  animation:
+    hare-read-x 6s steps(6) infinite,
+    hare-read-y 12s steps(2, end) infinite;
+}
+.hare-state-study-pause {
+  background-size: 480px 320px;
+  animation: hare-read-x 6s steps(6) infinite;
+  /* background-position-y uses --dir-offset (set to 0 = row 1 by Pet.jsx) */
+}
+@keyframes hare-read-x {
+  from { background-position-x: 0; }
+  to   { background-position-x: -480px; }
+}
+/* Alternates between row 3 (-160px) and row 4 (-240px), 6 s each */
+@keyframes hare-read-y {
+  0%   { background-position-y: -160px; }
+  50%  { background-position-y: -240px; }
+  100% { background-position-y: -160px; }
+}
+
 /* ── Campfire animated prop ──────────────────────────────────────
    Source: prop_campfire2.png — 6 frames × 32×32 px (192×32 total)
    Displayed at 3×: each frame 96×96 px → sheet width 576×96 px
@@ -293,4 +324,123 @@
 @keyframes cf-flicker {
   from { opacity: 0.85; transform: scale(0.93); }
   to   { opacity: 1.00; transform: scale(1.07); }
+}
+
+/* ═══════════════════════════════════════
+   TIER 2 & 3 DECORATIVE ANIMATIONS
+═══════════════════════════════════════ */
+
+/* Flag waving animation
+   Source spritesheet: 960×64 (5 frames, each 192×64)
+   Display: 80×32px per frame → background-size 400×32
+   Animation scrolls the 5 frames at ~10fps (0.5s total)  */
+.flag-wave {
+  width: 80px;
+  height: 32px;
+  background-size: 400px 32px;
+  image-rendering: pixelated;
+  animation: flag-wave-anim 0.5s steps(5) infinite;
+}
+
+@keyframes flag-wave-anim {
+  from { background-position-x: 0; }
+  to   { background-position-x: -400px; }
+}
+
+/* Tileset2 campfire animation (2 frames, each 192×64)
+   Display: 48×24px → background-size 96×24 */
+.campfire-anim {
+  width: 48px;
+  height: 24px;
+  background-size: 96px 24px;
+  image-rendering: pixelated;
+  animation: campfire-anim-frames 0.3s steps(2) infinite;
+}
+
+@keyframes campfire-anim-frames {
+  from { background-position-x: 0; }
+  to   { background-position-x: -96px; }
+}
+
+/* ═══════════════════════════════════════
+   LOCKED-AREA CLOUD COVER
+═══════════════════════════════════════ */
+.locked-area-cloud {
+  position: absolute;
+  pointer-events: none;
+  overflow: hidden;
+  /* White fog base */
+  background: rgba(220, 230, 245, 0.72);
+  backdrop-filter: blur(3px);
+  z-index: 850;  /* above night overlay (818), below UI */
+}
+
+/* CSS cloud puffs using radial gradients + animation */
+.cloud-puff {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(200,215,240,0.6) 60%, transparent 100%);
+  animation: cloud-drift linear infinite;
+}
+.cloud-puff-1 {
+  width: 180px; height: 120px;
+  left: -10%; top: 5%;
+  animation-duration: 22s;
+  animation-delay: 0s;
+}
+.cloud-puff-2 {
+  width: 240px; height: 150px;
+  left: 25%; top: -10%;
+  animation-duration: 28s;
+  animation-delay: -8s;
+}
+.cloud-puff-3 {
+  width: 160px; height: 110px;
+  left: 60%; top: 15%;
+  animation-duration: 18s;
+  animation-delay: -14s;
+}
+.cloud-puff-4 {
+  width: 200px; height: 130px;
+  left: 10%; top: 45%;
+  animation-duration: 24s;
+  animation-delay: -5s;
+}
+
+@keyframes cloud-drift {
+  0%   { transform: translateX(0px); }
+  50%  { transform: translateX(18px); }
+  100% { transform: translateX(0px); }
+}
+
+.cloud-mystery-label {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: rgba(80, 100, 140, 0.75);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* ═══════════════════════════════════════
+   AREA UPGRADE FLASH
+═══════════════════════════════════════ */
+.area-upgrade-flash {
+  position: absolute;
+  pointer-events: none;
+  z-index: 860;
+  background: radial-gradient(ellipse at center, rgba(255,230,80,0.75) 0%, rgba(255,200,20,0.3) 60%, transparent 100%);
+  animation: area-flash-anim 3s ease-in-out forwards;
+}
+
+@keyframes area-flash-anim {
+  0%   { opacity: 0; }
+  8%   { opacity: 1; }
+  40%  { opacity: 0.85; }
+  100% { opacity: 0; }
 }

@@ -3,3 +3,15 @@ dist
 .env.local
 .DS_Store
 *.local
+
+# Claude session files
+.claude/
+
+# Raw craftpix asset packs (purchased source material — use src/assets/ instead)
+craftpix tileset/
+craftpix tileset2/
+craftpix tileset3/
+craftpix top down/
+
+# Generated previews
+map-preview.png

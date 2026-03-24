@@ -144,7 +144,7 @@ export default function Pet({
   // ── Sprite selection ──────────────────────────────────────────
   const spriteUrl = showDead
     ? hareDeath
-    : (eatState === 'study' || eatState === 'study_pause' || eatState === 'going_study')
+    : (eatState === 'study' || eatState === 'study_pause')
       ? hareReading
       : eatState === 'eating'
         ? hareEating
@@ -152,7 +152,7 @@ export default function Pet({
           ? hareDrinking
           : (eatState === 'resting' || isLevelingState)
             ? hareIdle
-            : (eatState === 'going' || eatState === 'going_water' || eatState === 'going_celebrate')
+            : (eatState === 'going' || eatState === 'going_water' || eatState === 'going_celebrate' || eatState === 'going_study')
               ? hareRunShadow
               : hareWalkShadow
 

@@ -40,26 +40,46 @@ function makeGrassPatchesForAreas(areas) {
     const col       = areaId % 3
     const screenRow = 2 - Math.floor(areaId / 3)
     const ax = col * AREA_W, ay = screenRow * AREA_H
-    const count = Math.floor(Math.random() * 2) + 1   // 1 or 2 per area
-    let placed = 0, attempts = 0
-    while (placed < count && attempts < 80) {
-      attempts++
-      const x = ax + 40 + Math.random() * (AREA_W - 58 - 40)
-      const y = ay + 20 + Math.random() * (AREA_H - 74)
-      // Reject if inside any prop's collision radius
-      const blocked = WORLD_PROPS.some(p =>
-        Math.hypot(x + 29 - (p.x + p.displayW / 2), y + 29 - (p.y + p.displayH / 2)) < p.collisionR + 40
+
+    // Pick a cluster centre, then place 2–3 patches close together
+    const clusterCount = Math.floor(Math.random() * 2) + 2   // 2 or 3 per cluster
+    let clusterX, clusterY, centreAttempts = 0
+
+    // Find a valid cluster centre far from props
+    do {
+      clusterX = ax + 60 + Math.random() * (AREA_W - 120)
+      clusterY = ay + 30 + Math.random() * (AREA_H - 90)
+      centreAttempts++
+    } while (
+      centreAttempts < 40 &&
+      WORLD_PROPS.some(p =>
+        Math.hypot(clusterX - (p.x + p.displayW / 2), clusterY - (p.y + p.displayH / 2)) < p.collisionR + 55
       )
-      // Keep patches spread within the same area
+    )
+
+    // Place patches in a tight cluster around the centre (within ±36px)
+    let placed = 0, attempts = 0
+    while (placed < clusterCount && attempts < 60) {
+      attempts++
+      const angle  = Math.random() * Math.PI * 2
+      const radius = 10 + Math.random() * 30
+      const x = clusterX + Math.cos(angle) * radius
+      const y = clusterY + Math.sin(angle) * radius
+      if (x < ax + 30 || x > ax + AREA_W - 30) continue
+      if (y < ay + 20 || y > ay + AREA_H - 50) continue
+      const blocked = WORLD_PROPS.some(p =>
+        Math.hypot(x + 16 - (p.x + p.displayW / 2), y + 16 - (p.y + p.displayH / 2)) < p.collisionR + 32
+      )
       const tooClose = patches
         .filter(p => p.areaId === areaId)
-        .some(p => Math.hypot(p.x - x, p.y - y) < 72)
+        .some(p => Math.hypot(p.x - x, p.y - y) < 22)
       if (!blocked && !tooClose) {
         patches.push({
           id:      `grass_${areaId}_${placed}`,
           areaId,
           x:       +x.toFixed(1),
           y:       +y.toFixed(1),
+          variant: placed % 3,   // 0 = default SVG, 1 = golden tile, 2 = cool tile
           visible: true,
         })
         placed++

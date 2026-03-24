@@ -481,7 +481,7 @@ export const WORLD_PROPS = [
     interactive: true, interactType: 'rest' },
 
   { id: 'tree_2', type: 'tree_medium',
-    areaId: 2, tier: 1, ...pos(2, 0.60, 0.01),
+    areaId: 2, tier: 2, ...pos(2, 0.60, 0.01),
     displayW: 90, displayH: 100, collisionR: 50,
     interactive: true, interactType: 'rest' },
 
@@ -662,8 +662,24 @@ export const WORLD_PROPS = [
   { id: 't1_0_bush', type: 'bush_1', isDecor: true, areaId: 0, tier: 1, ...pos(0, 0.50, 0.50), displayW: 44, displayH: 40, collisionR: 0 },
 
   // ── AREA 2 (BR) ──────────────────────────────────────────
+  // Tier 1: rock + well + ground cover
   { id: 't1_2_g3', type: 'grass_3', isDecor: true, areaId: 2, tier: 1, ...pos(2, 0.30, 0.40), displayW: 28, displayH: 32, collisionR: 0 },
   { id: 't1_2_g6', type: 'grass_6', isDecor: true, areaId: 2, tier: 1, ...pos(2, 0.35, 0.45), displayW: 28, displayH: 32, collisionR: 0 },
   { id: 't1_2_stone', type: 'stone_10', isDecor: true, areaId: 2, tier: 1, ...pos(2, 0.70, 0.65), displayW: 40, displayH: 35, collisionR: 0 },
+  { id: 'well_2', type: 'well',
+    areaId: 2, tier: 1, ...pos(2, 0.55, 0.28),
+    displayW: 100, displayH: 100, collisionR: 48 },
+
+  // Tier 2: tree (moved from tier 1), a second rock, and a bush
+  { id: 't2_2_rock', type: 'rock_03', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.78, 0.60), displayW: 50, displayH: 30, collisionR: 0 },
+  { id: 't2_2_bush', type: 'bush_2', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.18, 0.52), displayW: 48, displayH: 42, collisionR: 0 },
+  { id: 't2_2_flower', type: 'flower_4', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.48, 0.55), displayW: 20, displayH: 18, collisionR: 0 },
+  { id: 't2_2_flower2', type: 'flower_9', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.52, 0.60), displayW: 20, displayH: 18, collisionR: 0 },
+
+  // Tier 3: lantern near the well to light it up
+  { id: 'lamp_2', type: 'lamp1',
+    areaId: 2, tier: 3, ...pos(2, 0.68, 0.22),
+    displayW: 40, displayH: 70, collisionR: 20,
+    emitsLight: true, glowRadius: 100, glowOffsetY: 0.12 },
 
 ]

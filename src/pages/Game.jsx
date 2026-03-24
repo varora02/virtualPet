@@ -106,7 +106,7 @@ function Game({ user }) {
     }))
   }, [areaTiers, pet.unlockedAreas, pet.coins])
 
-  const userName = user.email.includes('varun') ? 'Varun' : 'GF'
+  const userName = user.email.includes('varun') ? 'Varun' : 'Leena'
 
   // Compute level from experience (level 1 = 0–99 exp, level 2 = 100–199, etc.)
   const computeLevel = (exp) => Math.floor((exp || 0) / EXP_PER_LEVEL) + 1

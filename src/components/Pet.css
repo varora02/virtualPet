@@ -17,7 +17,8 @@
 .night-overlay {
   position: absolute;
   inset: 0;
-  background: rgba(10, 20, 60, 0.55);
+  background: rgba(8, 15, 40, 0.20);
+  mix-blend-mode: multiply;
   z-index: 818;
   pointer-events: none;
 }
@@ -232,7 +233,7 @@
   pointer-events: none;
 }
 
-/* ── Grass food object ───────────────── */
+/* ── Grass food objects — 3 colour variants ─── */
 .world-grass {
   position: absolute;
   z-index: 8;    /* above ground tiles, below depth-sorted props/hare (~394+) */
@@ -242,6 +243,29 @@
   pointer-events: none;
   user-select: none;
   transition: opacity 0.3s ease;
+  image-rendering: pixelated;
+}
+/* Variant 2: slightly golden tint */
+.world-grass--v2 {
+  width: 32px;
+  height: 32px;
+  filter: brightness(1.1) saturate(1.4) hue-rotate(-10deg);
+}
+/* Variant 3: darker, blue-green tint */
+.world-grass--v3 {
+  width: 32px;
+  height: 32px;
+  filter: brightness(0.9) saturate(1.6) hue-rotate(20deg);
+}
+
+/* ── Scene edge vignette — darkens map perimeter for focus ── */
+.scene-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 895;   /* above clouds (790) + night (818), below UI panels */
+  box-shadow: inset 0 0 140px 50px rgba(0, 0, 0, 0.42);
+  border-radius: inherit;
 }
 
 /* ── Reading / studying (Hare_reading_with_shadow: 6 frames × 4 rows, 1024×682) ──
@@ -295,35 +319,39 @@
    mix-blend-mode: screen punches warm light through the dark tint.
    Brightness boosted vs. before: inner stop at 0.72, falloff to 55%.
 ──────────────────────────────────────────────────────────────── */
+/* Pixel-art light: hard concentric rings (no smooth gradients).
+   Square shape + px-stop radial = blocky tile-style illumination.      */
 .light-glow {
   position: absolute;
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 220, 120, 0.72) 0%,
-    rgba(255, 170,  60, 0.40) 40%,
-    rgba(255, 130,  30, 0.15) 65%,
-    transparent 85%
+  border-radius: 0;
+  background: radial-gradient(circle at center,
+    rgba(255, 250, 180, 0.90)  0px  10px,
+    rgba(255, 210,  90, 0.65) 10px  22px,
+    rgba(255, 155,  30, 0.38) 22px  40px,
+    rgba(200,  90,   5, 0.16) 40px  62px,
+    rgba(140,  50,   0, 0.06) 62px  80px,
+    transparent                80px
   );
   mix-blend-mode: screen;
   pointer-events: none;
   user-select: none;
 }
 
-/* Campfire glow flickers slightly and is extra warm/bright */
+/* Campfire: extra-warm pixel rings + step flicker (scale snaps, not slides) */
 .campfire-glow {
-  background: radial-gradient(
-    circle,
-    rgba(255, 200,  80, 0.80) 0%,
-    rgba(255, 140,  30, 0.50) 35%,
-    rgba(255, 100,  10, 0.20) 60%,
-    transparent 80%
+  background: radial-gradient(circle at center,
+    rgba(255, 240, 100, 1.00)  0px  12px,
+    rgba(255, 190,  40, 0.80) 12px  28px,
+    rgba(255, 120,  10, 0.50) 28px  52px,
+    rgba(200,  70,   0, 0.22) 52px  80px,
+    rgba(140,  30,   0, 0.08) 80px 110px,
+    transparent               110px
   );
-  animation: cf-flicker 0.14s ease-in-out infinite alternate;
+  animation: cf-flicker 0.18s steps(2, end) infinite alternate;
 }
 @keyframes cf-flicker {
-  from { opacity: 0.85; transform: scale(0.93); }
-  to   { opacity: 1.00; transform: scale(1.07); }
+  from { opacity: 0.80; transform: scale(0.95); }
+  to   { opacity: 1.00; transform: scale(1.05); }
 }
 
 /* ═══════════════════════════════════════
@@ -369,48 +397,151 @@
   position: absolute;
   pointer-events: none;
   overflow: hidden;
-  /* White fog base */
-  background: rgba(220, 230, 245, 0.72);
-  backdrop-filter: blur(3px);
-  z-index: 850;  /* above night overlay (818), below UI */
+  /* Layered atmospheric fog — sits above props (≤542) but BELOW v-fences (798)
+     so fence borders stay fully visible at area edges.               */
+  background: linear-gradient(
+    180deg,
+    rgba(255,255,255,0.06) 0%,
+    rgba(232,241,255,0.52) 38%,
+    rgba(212,228,252,0.76) 72%,
+    rgba(202,220,250,0.86) 100%
+  );
+  backdrop-filter: blur(5px);
+  z-index: 790;
+  border-radius: 8px;
 }
 
-/* CSS cloud puffs using radial gradients + animation */
+/* Proper cloud shapes: flat-bottomed body + circular bumps on top */
 .cloud-puff {
   position: absolute;
+  background: linear-gradient(180deg, rgba(255,255,255,0.97) 0%, rgba(235,244,255,0.88) 100%);
+  border-radius: 50px;
+  box-shadow:
+    0 6px 20px rgba(140, 175, 225, 0.30),
+    0 2px 6px  rgba(160, 195, 240, 0.20),
+    inset 0 -5px 12px rgba(190, 215, 248, 0.28);
+  animation: cloud-float ease-in-out infinite;
+  opacity: 0.92;
+}
+.cloud-puff::before,
+.cloud-puff::after {
+  content: '';
+  position: absolute;
+  background: linear-gradient(160deg, rgba(255,255,255,1.0) 0%, rgba(238,247,255,0.90) 100%);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(200,215,240,0.6) 60%, transparent 100%);
-  animation: cloud-drift linear infinite;
-}
-.cloud-puff-1 {
-  width: 180px; height: 120px;
-  left: -10%; top: 5%;
-  animation-duration: 22s;
-  animation-delay: 0s;
-}
-.cloud-puff-2 {
-  width: 240px; height: 150px;
-  left: 25%; top: -10%;
-  animation-duration: 28s;
-  animation-delay: -8s;
-}
-.cloud-puff-3 {
-  width: 160px; height: 110px;
-  left: 60%; top: 15%;
-  animation-duration: 18s;
-  animation-delay: -14s;
-}
-.cloud-puff-4 {
-  width: 200px; height: 130px;
-  left: 10%; top: 45%;
-  animation-duration: 24s;
-  animation-delay: -5s;
+  box-shadow: inset 0 -3px 8px rgba(185,212,248,0.25);
 }
 
-@keyframes cloud-drift {
-  0%   { transform: translateX(0px); }
-  50%  { transform: translateX(18px); }
-  100% { transform: translateX(0px); }
+.cloud-puff-1 {
+  width: 155px; height: 48px;
+  left: 4%; top: 10%;
+  animation-duration: 6s;
+  animation-delay: 0s;
+}
+.cloud-puff-1::before {
+  width: 68px; height: 68px;
+  top: -38px; left: 18px;
+}
+.cloud-puff-1::after {
+  width: 52px; height: 52px;
+  top: -28px; left: 73px;
+}
+
+.cloud-puff-2 {
+  width: 195px; height: 54px;
+  left: 36%; top: 0%;
+  animation-duration: 8s;
+  animation-delay: -3s;
+}
+.cloud-puff-2::before {
+  width: 80px; height: 80px;
+  top: -46px; left: 28px;
+}
+.cloud-puff-2::after {
+  width: 62px; height: 62px;
+  top: -36px; left: 100px;
+}
+
+.cloud-puff-3 {
+  width: 138px; height: 44px;
+  left: 63%; top: 14%;
+  animation-duration: 7s;
+  animation-delay: -5s;
+}
+.cloud-puff-3::before {
+  width: 58px; height: 58px;
+  top: -33px; left: 14px;
+}
+.cloud-puff-3::after {
+  width: 48px; height: 48px;
+  top: -26px; left: 64px;
+}
+
+.cloud-puff-4 {
+  width: 172px; height: 50px;
+  left: 16%; top: 52%;
+  animation-duration: 9s;
+  animation-delay: -2s;
+}
+.cloud-puff-4::before {
+  width: 74px; height: 74px;
+  top: -42px; left: 22px;
+}
+.cloud-puff-4::after {
+  width: 57px; height: 57px;
+  top: -30px; left: 88px;
+}
+
+.cloud-puff-5 {
+  width: 148px; height: 44px;
+  left: 55%; top: 48%;
+  animation-duration: 7.5s;
+  animation-delay: -6s;
+}
+.cloud-puff-5::before {
+  width: 62px; height: 62px;
+  top: -36px; left: 16px;
+}
+.cloud-puff-5::after {
+  width: 50px; height: 50px;
+  top: -26px; left: 72px;
+}
+
+.cloud-puff-6 {
+  width: 120px; height: 38px;
+  left: 10%; top: 70%;
+  animation-duration: 10s;
+  animation-delay: -4s;
+  opacity: 0.78;
+}
+.cloud-puff-6::before {
+  width: 52px; height: 52px;
+  top: -30px; left: 12px;
+}
+.cloud-puff-6::after {
+  width: 42px; height: 42px;
+  top: -22px; left: 58px;
+}
+
+.cloud-puff-7 {
+  width: 135px; height: 42px;
+  left: 58%; top: 72%;
+  animation-duration: 8s;
+  animation-delay: -1s;
+  opacity: 0.75;
+}
+.cloud-puff-7::before {
+  width: 56px; height: 56px;
+  top: -32px; left: 14px;
+}
+.cloud-puff-7::after {
+  width: 46px; height: 46px;
+  top: -24px; left: 68px;
+}
+
+@keyframes cloud-float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
 }
 
 .cloud-mystery-label {
@@ -425,6 +556,7 @@
   text-transform: uppercase;
   white-space: nowrap;
   pointer-events: none;
+  text-shadow: 0 1px 6px rgba(255,255,255,0.9), 0 0 12px rgba(255,255,255,0.6);
 }
 
 /* ═══════════════════════════════════════

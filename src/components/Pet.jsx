@@ -19,6 +19,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import grassUrl         from '../assets/svgs/grass.svg'
+import grass2Url        from '../assets/tiles/decor_grass_2.png'
+import grass3Url        from '../assets/tiles/decor_grass_4.png'
 import TileMap          from './TileMap.jsx'
 import PathOverlay      from './PathOverlay.jsx'
 import FenceOverlay     from './FenceOverlay.jsx'
@@ -185,7 +187,7 @@ export default function Pet({
 
   // ── Render ────────────────────────────────────────────────────
   return (
-    <div className={`world-scene mood-${mood}`}>
+    <div className={`world-scene mood-${mood}`} style={isNight ? { filter: 'brightness(0.68) saturate(0.82)' } : {}}>
 
       <TileMap />
       {pathVisible && <PathOverlay />}
@@ -220,16 +222,18 @@ export default function Pet({
         )
       })}
 
-      {/* Grass patches */}
-      {grassPatches.map((g, i) => g.visible && (
-        <img
-          key={i}
-          src={grassUrl}
-          alt="grass"
-          className="world-grass"
-          style={{ left: `${g.x}px`, top: `${g.y}px` }}
-        />
-      ))}
+      {/* Grass patches — 3 variants for visual variety */}
+      {grassPatches.map((g, i) => {
+        if (!g.visible) return null
+        const src = g.variant === 1 ? grass2Url : g.variant === 2 ? grass3Url : grassUrl
+        const cls = g.variant === 1 ? 'world-grass world-grass--v2'
+                  : g.variant === 2 ? 'world-grass world-grass--v3'
+                  : 'world-grass'
+        return (
+          <img key={i} src={src} alt="grass" className={cls}
+            style={{ left: `${g.x}px`, top: `${g.y}px` }} />
+        )
+      })}
 
       {/* Ghost Bud — mirrors main hare with translucent white tint */}
       {ghostBudActive && (
@@ -296,16 +300,25 @@ export default function Pet({
         if (tier > 0) return null   // unlocked — no cloud
         const col       = areaId % 3
         const screenRow = 2 - Math.floor(areaId / 3)
+        const INSET = 22  // keep cloud clear of fence border pixels
         return (
           <div
             key={`cloud_${areaId}`}
             className="locked-area-cloud"
-            style={{ left: col * AREA_W, top: screenRow * AREA_H, width: AREA_W, height: AREA_H }}
+            style={{
+              left:   col * AREA_W + INSET,
+              top:    screenRow * AREA_H + INSET,
+              width:  AREA_W - INSET * 2,
+              height: AREA_H - INSET * 2,
+            }}
           >
             <div className="cloud-puff cloud-puff-1" />
             <div className="cloud-puff cloud-puff-2" />
             <div className="cloud-puff cloud-puff-3" />
             <div className="cloud-puff cloud-puff-4" />
+            <div className="cloud-puff cloud-puff-5" />
+            <div className="cloud-puff cloud-puff-6" />
+            <div className="cloud-puff cloud-puff-7" />
             <span className="cloud-mystery-label">✨ Locked</span>
           </div>
         )
@@ -323,6 +336,9 @@ export default function Pet({
           />
         )
       })()}
+
+      {/* Scene edge vignette — subtle darkness around map perimeter for focus */}
+      <div className="scene-vignette" aria-hidden="true" />
 
     </div>
   )

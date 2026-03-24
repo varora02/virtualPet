@@ -39,6 +39,8 @@ const DEFAULT_PET = {
   lastFed: null,
   lastWatered: null,
   activities: [],
+  lastSeenVarun: null,
+  lastSeenGF: null,
   todayStudySessions: 0,
   lastStudyDate: null,
 }
@@ -65,6 +67,9 @@ function Game({ user }) {
   const [pet, setPet]                   = useState(DEFAULT_PET)
   const [petKey, setPetKey]             = useState(0)   // increment → forces Pet remount → respawn at SPAWN_X/Y
   const [loading, setLoading]           = useState(true)
+  const [activePet, setActivePet]       = useState(() =>
+    localStorage.getItem('activePet') || 'rompy'
+  )
   const [showActions, setShowActions]   = useState(false)
   const [showActivity, setShowActivity] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
@@ -76,6 +81,7 @@ function Game({ user }) {
   const [studyResumeTrigger, setStudyResumeTrigger] = useState(0)
   const [studyStopTrigger,   setStudyStopTrigger]   = useState(0)
   const [celebrateTrigger,   setCelebrateTrigger]   = useState(0)
+  const [greetTrigger,       setGreetTrigger]       = useState(0)
   const studyStartedRef = useRef(false)  // true once hare has been sent to a tree
   const [showStretchPopup, setShowStretchPopup] = useState(false)
   const [showShop, setShowShop]         = useState(false)
@@ -94,8 +100,18 @@ function Game({ user }) {
   const pendingFlashAreaRef = useRef(null)
 
   const hasCheckedDaily                 = useRef(false)
+  const hasCheckedNotif                 = useRef(false)
   const petRef                          = useRef(pet)
   useEffect(() => { petRef.current = pet }, [pet])
+
+  // Persist active pet choice
+  useEffect(() => {
+    localStorage.setItem('activePet', activePet)
+    setPetKey(k => k + 1)  // remount so pet respawns fresh on switch
+  }, [activePet])
+
+  // ── "While you were away" notification banner ─────────────────
+  const [notifBanner, setNotifBanner]   = useState(null)  // null or string message
 
   // ── Persist local progression to localStorage ─────────────────
   useEffect(() => {
@@ -107,6 +123,40 @@ function Game({ user }) {
   }, [areaTiers, pet.unlockedAreas, pet.coins])
 
   const userName = user.email.includes('varun') ? 'Varun' : 'Leena'
+
+  // ── "While you were away" banner logic ────────────────────────
+  // Reads the other user's recent activities vs our lastSeen timestamp,
+  // shows a banner, then stamps our lastSeen to now in Firestore.
+  // Called once on first Firestore load AND on every tab-visibility change.
+  function checkAndShowNotif(petData) {
+    const mySeenKey  = userName === 'Varun' ? 'lastSeenVarun' : 'lastSeenGF'
+    const otherUser  = userName === 'Varun' ? 'Leena' : 'Varun'
+    const lastSeen   = petData[mySeenKey]   // ISO string or null
+    const activities = petData.activities || []
+
+    // Find activity from the other user that happened after our last visit
+    const newActivity = activities.filter(a => {
+      if (a.user !== otherUser) return false
+      if (!lastSeen) return false   // first ever visit — no banner, just stamp
+      return new Date(a.timestamp) > new Date(lastSeen)
+    })
+
+    const studySessions = newActivity.filter(a =>
+      a.text.includes('finished a study session')
+    ).length
+    const totalActions = newActivity.length
+
+    if (totalActions > 0) {
+      const msg = studySessions > 0
+        ? `${otherUser} completed ${studySessions} study session${studySessions !== 1 ? 's' : ''} while you were away! 📚`
+        : `${otherUser} was active while you were away (${totalActions} update${totalActions !== 1 ? 's' : ''})!`
+      setNotifBanner(msg)
+    }
+
+    // Always stamp our lastSeen so next visit compares from now
+    const petDocRef = doc(db, 'pets', 'shared-pet')
+    updateDoc(petDocRef, { [mySeenKey]: new Date().toISOString() })
+  }
 
   // Compute level from experience (level 1 = 0–99 exp, level 2 = 100–199, etc.)
   const computeLevel = (exp) => Math.floor((exp || 0) / EXP_PER_LEVEL) + 1
@@ -123,6 +173,12 @@ function Game({ user }) {
           data.name = 'Rompy'
         }
         setPet({ ...DEFAULT_PET, ...data })
+
+        // "While you were away" — check once on first load
+        if (!hasCheckedNotif.current) {
+          hasCheckedNotif.current = true
+          checkAndShowNotif(data)
+        }
 
         // Daily login streak — fires once per calendar day, first time pet loads
         if (!hasCheckedDaily.current) {
@@ -156,6 +212,24 @@ function Game({ user }) {
     })
 
     return () => unsubscribe()
+  }, [])
+
+  // ── Tab visibility → "while you were away" banner + Bubby greet ─
+  const activePetRef = useRef(activePet)
+  useEffect(() => { activePetRef.current = activePet }, [activePet])
+
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkAndShowNotif(petRef.current)
+        // Bubby runs to center of her area and licks her paw as a greeting
+        if (activePetRef.current === 'bubby') {
+          setGreetTrigger(n => n + 1)
+        }
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibility)
+    return () => document.removeEventListener('visibilitychange', handleVisibility)
   }, [])
 
   // Local stat decay
@@ -239,6 +313,8 @@ function Game({ user }) {
       : `${userName} played with ${pet.name} +1 🪙`
 
     await updatePet(statUpdates, activityText, 1)
+
+    setCelebrateTrigger(n => n + 1)   // trigger run→jump animation for Bubby / victory lap for Rompy
 
     if (didLevelUp) {
       setIsLevelingUp(true)
@@ -514,6 +590,13 @@ function Game({ user }) {
           <span className="user-badge">
             {userName === 'Varun' ? '💙' : '💖'} {userName}
           </span>
+          <button
+            className="pet-toggle-btn"
+            onClick={() => setActivePet(p => p === 'rompy' ? 'bubby' : 'rompy')}
+            title="Switch active pet"
+          >
+            {activePet === 'rompy' ? '🐱 Play as Bubby' : '🐰 Play as Rompy'}
+          </button>
           <button className="reset-btn" onClick={() => setShowResetConfirm(true)} title="Reset game state">↺ Reset</button>
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
@@ -532,6 +615,18 @@ function Game({ user }) {
               <button className="reset-cancel-btn" onClick={() => setShowResetConfirm(false)}>Cancel</button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* "While you were away" notification banner */}
+      {notifBanner && (
+        <div className="notif-banner" role="status">
+          <span className="notif-banner-msg">{notifBanner}</span>
+          <button
+            className="notif-banner-close"
+            aria-label="Dismiss"
+            onClick={() => setNotifBanner(null)}
+          >✕</button>
         </div>
       )}
 
@@ -566,6 +661,9 @@ function Game({ user }) {
           pathVisible={pet.pathUnlocked === true}
           areaTiers={areaTiers}
           upgradedArea={upgradedArea}
+          petType={activePet}
+          petHunger={pet.hunger}
+          greetTrigger={greetTrigger}
         />
       </div>
 

@@ -1064,3 +1064,64 @@
     font-size: 1.2rem;
   }
 }
+
+/* ── "While you were away" notification banner ──────────────── */
+.notif-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #4a90d9, #6b5fb5);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  margin: 0 auto 10px;
+  max-width: 960px;
+  width: calc(100% - 32px);
+  font-size: 0.92rem;
+  font-weight: 600;
+  box-shadow: 0 3px 12px rgba(74, 144, 217, 0.35);
+  animation: notif-slide-in 0.3s ease;
+}
+@keyframes notif-slide-in {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.notif-banner-msg { flex: 1; }
+.notif-banner-close {
+  background: rgba(255,255,255,0.22);
+  border: none;
+  color: #fff;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.notif-banner-close:hover { background: rgba(255,255,255,0.38); }
+
+/* ── Pet toggle button ─────────────────────────────────────── */
+.pet-toggle-btn {
+  background: linear-gradient(135deg, #7c5cbf, #a07cdc);
+  border: none;
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 14px;
+  cursor: pointer;
+  letter-spacing: 0.4px;
+  box-shadow: 0 2px 8px rgba(124, 92, 191, 0.4);
+  transition: transform 0.12s, box-shadow 0.12s, opacity 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.pet-toggle-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(124, 92, 191, 0.5);
+}
+.pet-toggle-btn:active {
+  transform: translateY(0);
+  opacity: 0.85;
+}

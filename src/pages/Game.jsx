@@ -88,6 +88,13 @@ function Game({ user }) {
   const [showResetConfirm, setShowResetConfirm] = useState(false)
   const [upgradedArea, setUpgradedArea] = useState(null)  // areaId that just upgraded → flash
 
+  // ── Thought bubble state ──────────────────────────────────────
+  // { message: string, key: number } | null
+  // key increments on each new thought to force CSS re-animation even for repeated messages.
+  const [thoughtBubble,    setThoughtBubble]    = useState(null)
+  const thoughtTimerRef                         = useRef(null)
+  const thoughtKeyRef                           = useRef(0)
+
   // ── Level-up & popup state ────────────────────────────────────
   const [isLevelingUp, setIsLevelingUp]   = useState(false)
   const [showLevelPopup, setShowLevelPopup] = useState(false)
@@ -261,7 +268,32 @@ function Game({ user }) {
     }
   }
 
+  // ── Thought bubble helper ─────────────────────────────────────
+  // Shows a thought bubble above the pet for ~2 s then clears it.
+  const triggerThought = (message) => {
+    clearTimeout(thoughtTimerRef.current)
+    thoughtKeyRef.current += 1
+    setThoughtBubble({ message, key: thoughtKeyRef.current })
+    thoughtTimerRef.current = setTimeout(() => setThoughtBubble(null), 2100)
+  }
+
+  // Spontaneous thoughts when hunger or thirst drops below 20 %.
+  // Fires ~every 20–35 s while the condition holds; clears when fed/watered.
+  useEffect(() => {
+    const HUNGRY_THRESHOLD = 20
+    const THIRSTY_THRESHOLD = 20
+    if (pet.hunger >= HUNGRY_THRESHOLD && pet.thirst >= THIRSTY_THRESHOLD) return
+    const messages = []
+    if (pet.hunger < HUNGRY_THRESHOLD) messages.push('My tummy is grumbling... 🌿')
+    if (pet.thirst < THIRSTY_THRESHOLD) messages.push("So thirsty... 💧")
+    const pick = messages[Math.floor(Math.random() * messages.length)]
+    const delay = 5000 + Math.random() * 15000  // first bubble after 5–20 s
+    const t = setTimeout(() => triggerThought(pick), delay)
+    return () => clearTimeout(t)
+  }, [pet.hunger, pet.thirst])
+
   const feedPet = () => {
+    if (pet.energy <= 20) { triggerThought("Too sleepy to eat... 😴"); return }
     // Just send the hare toward grass — hunger only updates via onAte
     // when the hare actually arrives and finishes eating.
     if (pet.hunger >= 100) return
@@ -281,6 +313,7 @@ function Game({ user }) {
   }
 
   const waterPet = () => {
+    if (pet.energy <= 20) { triggerThought("I'm tired... zzz 💤"); return }
     if (pet.thirst >= 100) return
     setWaterTrigger(n => n + 1)
     updatePet(
@@ -460,8 +493,15 @@ function Game({ user }) {
   // ── Tier progression ──────────────────────────────────────────
   // Area 0 (BL) is always tier 1 from the start. Progression:
   //   Upgrade area 0 T1→T2→T3, then unlock area 1 at T1, upgrade T2→T3, unlock area 2, etc.
-  //   After all 9 areas reach T3: offer the path unlock.
+  //   After all 9 areas reach T3 AND all 9 are in Firestore unlockedAreas: offer the path unlock.
+  //
+  // We require BOTH conditions to prevent stale localStorage data from unlocking
+  // the path early when Firestore hasn't confirmed all regions are actually unlocked.
   const allAreasMaxed = PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
+  const allAreasFirestoreUnlocked = PROGRESSION_ORDER.every(id =>
+    id === 0 || (pet.unlockedAreas || [0]).includes(id)
+  )
+  const canUnlockPath = allAreasMaxed && allAreasFirestoreUnlocked
   const pathUnlocked  = pet.pathUnlocked === true
 
   function getNextUpgrade() {
@@ -482,8 +522,8 @@ function Game({ user }) {
         return { type: 'tier', areaId, fromTier: effectiveTier, toTier: effectiveTier + 1, cost: 1 }
       }
     }
-    // All areas at T3 — offer the path as the final unlock
-    if (allAreasMaxed && !pathUnlocked) {
+    // All areas at T3 in both local state AND Firestore — offer the path
+    if (canUnlockPath && !pathUnlocked) {
       return { type: 'path', cost: 1 }
     }
     return null
@@ -664,6 +704,7 @@ function Game({ user }) {
           petType={activePet}
           petHunger={pet.hunger}
           greetTrigger={greetTrigger}
+          thoughtBubble={thoughtBubble}
         />
       </div>
 
@@ -794,6 +835,7 @@ function Game({ user }) {
           areaTiers={areaTiers}
           unlockedAreas={pet.unlockedAreas || [0]}
           getNextUpgrade={getNextUpgrade}
+          canUnlockPath={canUnlockPath}
           onBuy={handleProgressionPurchase}
           pathUnlocked={pet.pathUnlocked === true}
           onBuyItem={buyItem}
@@ -848,10 +890,11 @@ const AREA_LABELS = {
 }
 
 // ── Shop Modal ────────────────────────────────────────────────────────────────
-function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, onBuy, pathUnlocked, onBuyItem, onClose }) {
+function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUnlockPath, onBuy, pathUnlocked, onBuyItem, onClose }) {
   const [activeTab, setActiveTab] = useState('items')
   const next = getNextUpgrade()
-  const allAreasDone = PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
+  // Use the stricter canUnlockPath (requires both local tier state + Firestore confirmation)
+  const allAreasDone = canUnlockPath ?? PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
 
   return (
     <div className="shop-modal-overlay" onClick={onClose}>

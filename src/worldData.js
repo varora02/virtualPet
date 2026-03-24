@@ -470,134 +470,148 @@ export const WORLD_PROPS = [
     interactive: true, interactType: 'water' },
 
   // ── Trees — 1 per area (BL→MR), plus forest cluster in TR ────
+  //
+  // collisionR philosophy (revised):
+  //   Old values (44–56) blocked the whole canopy, making Bubby unable to
+  //   walk under trees and getting stuck after rest/study.
+  //   New values (16–22) cover only the visible trunk base so the pet can
+  //   freely wander under the canopy — much more natural for a small cat.
+  //   The escape-depenetration logic in clampToPassable handles any case
+  //   where the pet ends up inside the radius (e.g. after a rest/study run).
+  //
+  //   small  → 16   medium → 19   large → 22
+  //   (Forest trees use the same scale, rounded to nearest even number.)
+
   { id: 'tree_0', type: 'tree_small',
     areaId: 0, tier: 1, ...pos(0, 0.07, 0.01),
-    displayW: 80, displayH: 93, collisionR: 44,
+    displayW: 80, displayH: 93, collisionR: 16,
     interactive: true, interactType: 'rest' },
 
   { id: 'tree_1', type: 'tree_small',
     areaId: 1, tier: 1, ...pos(1, 0.44, 0.01),
-    displayW: 80, displayH: 93, collisionR: 44,
+    displayW: 80, displayH: 93, collisionR: 16,
     interactive: true, interactType: 'rest' },
 
   { id: 'tree_2', type: 'tree_medium',
     areaId: 2, tier: 2, ...pos(2, 0.60, 0.01),
-    displayW: 90, displayH: 100, collisionR: 50,
+    displayW: 90, displayH: 100, collisionR: 19,
     interactive: true, interactType: 'rest' },
 
   { id: 'tree_3', type: 'tree_small',
     areaId: 3, tier: 1, ...pos(3, 0.07, 0.01),
-    displayW: 80, displayH: 93, collisionR: 44,
+    displayW: 80, displayH: 93, collisionR: 16,
     interactive: true, interactType: 'rest' },
 
   // tree_4 in MM is positioned left so campfire can sit at centre
   { id: 'tree_4', type: 'tree_large',
     areaId: 4, tier: 1, ...pos(4, 0.08, 0.01),
-    displayW: 100, displayH: 120, collisionR: 56,
+    displayW: 100, displayH: 120, collisionR: 22,
     interactive: true, interactType: 'rest' },
 
   // tree_5 at relY=0.62 — base clears path row 5 (relY ≈ 0.25–0.50 in MR)
   { id: 'tree_5', type: 'tree_medium',
     areaId: 5, tier: 1, ...pos(5, 0.34, 0.62),
-    displayW: 90, displayH: 100, collisionR: 50,
+    displayW: 90, displayH: 100, collisionR: 19,
     interactive: true, interactType: 'rest' },
 
   // tree_6 at relY=0.55 — base clears path row 1 (y=64–128 in TL)
   { id: 'tree_6', type: 'tree_small',
     areaId: 6, tier: 1, ...pos(6, 0.07, 0.55),
-    displayW: 80, displayH: 93, collisionR: 44,
+    displayW: 80, displayH: 93, collisionR: 16,
     interactive: true, interactType: 'rest' },
 
   // tree_7 at relY=0.55 — base clears path row 1 (y=64–128 in TM)
   { id: 'tree_7', type: 'tree_medium',
     areaId: 7, tier: 1, ...pos(7, 0.41, 0.55),
-    displayW: 90, displayH: 100, collisionR: 50,
+    displayW: 90, displayH: 100, collisionR: 19,
     interactive: true, interactType: 'rest' },
 
   { id: 'tree_8', type: 'tree_large',
     areaId: 8, tier: 1, ...pos(8, 0.10, 0.01),
-    displayW: 100, displayH: 120, collisionR: 56,
+    displayW: 100, displayH: 120, collisionR: 22,
     interactive: true, interactType: 'rest' },
 
   // ── Forest cluster — TR (area 8) — dense tree grouping ───────
   { id: 'forest_8a', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.35 * AREA_W, 0.02 * AREA_H),
-    displayW: 75, displayH: 88, collisionR: 40,
+    displayW: 75, displayH: 88, collisionR: 16,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8b', type: 'tree_medium',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.52 * AREA_W, 0.01 * AREA_H),
-    displayW: 85, displayH: 95, collisionR: 46,
+    displayW: 85, displayH: 95, collisionR: 19,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8c', type: 'tree_large',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.70 * AREA_W, 0.00 * AREA_H),
-    displayW: 95, displayH: 115, collisionR: 52,
+    displayW: 95, displayH: 115, collisionR: 22,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8d', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.82 * AREA_W, 0.02 * AREA_H),
-    displayW: 72, displayH: 84, collisionR: 38,
+    displayW: 72, displayH: 84, collisionR: 16,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8e', type: 'tree_medium',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.25 * AREA_W, 0.30 * AREA_H),
-    displayW: 80, displayH: 92, collisionR: 44,
+    displayW: 80, displayH: 92, collisionR: 19,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8f', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.44 * AREA_W, 0.35 * AREA_H),
-    displayW: 70, displayH: 82, collisionR: 38,
+    displayW: 70, displayH: 82, collisionR: 16,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8g', type: 'tree_large',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.60 * AREA_W, 0.30 * AREA_H),
-    displayW: 90, displayH: 108, collisionR: 50,
+    displayW: 90, displayH: 108, collisionR: 22,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8h', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.78 * AREA_W, 0.33 * AREA_H),
-    displayW: 72, displayH: 84, collisionR: 38,
+    displayW: 72, displayH: 84, collisionR: 16,
     interactive: true, interactType: 'rest' },
 
   // Denser canopy — overlap allowed
   { id: 'forest_8i', type: 'tree_large',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.07 * AREA_W, 0.00 * AREA_H),
-    displayW: 95, displayH: 112, collisionR: 50,
+    displayW: 95, displayH: 112, collisionR: 22,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8j', type: 'tree_medium',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.18 * AREA_W, 0.02 * AREA_H),
-    displayW: 82, displayH: 94, collisionR: 44,
+    displayW: 82, displayH: 94, collisionR: 19,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8k', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.42 * AREA_W, 0.13 * AREA_H),
-    displayW: 74, displayH: 86, collisionR: 40,
+    displayW: 74, displayH: 86, collisionR: 16,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8l', type: 'tree_large',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.88 * AREA_W, 0.00 * AREA_H),
-    displayW: 90, displayH: 108, collisionR: 48,
+    displayW: 90, displayH: 108, collisionR: 22,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8m', type: 'tree_medium',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.08 * AREA_W, 0.28 * AREA_H),
-    displayW: 80, displayH: 90, collisionR: 42,
+    displayW: 80, displayH: 90, collisionR: 19,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8n', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.55 * AREA_W, 0.55 * AREA_H),
-    displayW: 70, displayH: 82, collisionR: 38,
+    displayW: 70, displayH: 82, collisionR: 16,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8o', type: 'tree_large',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.72 * AREA_W, 0.55 * AREA_H),
-    displayW: 92, displayH: 110, collisionR: 50,
+    displayW: 92, displayH: 110, collisionR: 22,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8p', type: 'tree_medium',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.88 * AREA_W, 0.52 * AREA_H),
-    displayW: 80, displayH: 92, collisionR: 44,
+    displayW: 80, displayH: 92, collisionR: 19,
     interactive: true, interactType: 'rest' },
   { id: 'forest_8q', type: 'tree_small',
     areaId: 8, tier: 1, ...abs(2 * AREA_W + 0.20 * AREA_W, 0.55 * AREA_H),
-    displayW: 72, displayH: 84, collisionR: 38,
+    displayW: 72, displayH: 84, collisionR: 16,
     interactive: true, interactType: 'rest' },
 
   // ── Campfire — MM (area 4), centred ───────────────────────────
   // prop_campfire2.png: 6 frames × 32×32 px → displayed at 3× (96×96)
   // animClass 'prop-campfire' drives the steps(6) CSS animation (Pet.css).
   // glowCssClass 'campfire-glow' enables the warm-flickering light variant.
+  // collisionR 36 (was 52) — still blocks the flame area without trapping the
+  // pet when it wanders near the edge of the campfire zone.
   { id: 'campfire_0', type: 'campfire',
     areaId: 4, tier: 1, ...pos(4, 0.393, 0.313),
-    displayW: 96, displayH: 96, collisionR: 52,
+    displayW: 96, displayH: 96, collisionR: 36,
     animated: true, animClass: 'prop-campfire',
     emitsLight: true, glowRadius: 150, glowOffsetY: 0.55, glowCssClass: 'campfire-glow' },
 
@@ -671,9 +685,12 @@ export const WORLD_PROPS = [
   { id: 't2_2_rock', type: 'rock_03', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.78, 0.60), displayW: 50, displayH: 30, collisionR: 0 },
   { id: 't2_2_bush', type: 'bush_2', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.18, 0.52), displayW: 48, displayH: 42, collisionR: 0 },
 
-  // Tier 3: lantern next to the well in BL (area 0) to light it up at night
+  // Tier 3: lantern at the top-left corner of the well in BL (area 0).
+  // well_0 is at pos(0, 0.73, 0.28) with displayW:100, displayH:100.
+  // Lamp is 40×70 px; placed at relX=0.68 so its right edge meets the well's
+  // left edge, and relY=0.18 so its base sits at roughly 1/3 down the well.
   { id: 'lamp_2', type: 'lamp1',
-    areaId: 0, tier: 3, ...pos(0, 0.87, 0.16),
+    areaId: 0, tier: 3, ...pos(0, 0.68, 0.18),
     displayW: 40, displayH: 70, collisionR: 0,
     emitsLight: true, glowRadius: 100, glowOffsetY: 0.12 },
 

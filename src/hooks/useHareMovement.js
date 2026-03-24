@@ -66,6 +66,7 @@ export function randomWanderTarget(unlockedAreas) {
     const pt = randomPointInArea(id)
     const cx = pt.x + HARE_PX / 2, cy = pt.y + HARE_PX / 2
     const blocked = WORLD_PROPS.some(p =>
+      p.collisionR > 0 &&
       Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + HARE_PX / 2
     )
     if (!blocked) return pt
@@ -382,21 +383,51 @@ export function useHareMovement({
        * Like clampToUnlocked but also avoids prop collision radii.
        * Used for all free-movement states (wander, run, greet) so the pet
        * never clips through a tree or well during travel.
+       *
+       * Escape hatch: if the pet's *current position* is already inside a
+       * prop's collision zone (which happens after rest/study at a tree ends),
+       * all three slide attempts fail. In that case we detect the overlapping
+       * prop and push the pet directly away from its centre at WALK_SPEED so
+       * they can escape smoothly instead of freezing forever.
        */
       const clampToPassable = (nx, ny, pos) => {
         const unlocked = unlockedAreasRef.current
-        const inProp = (px, py) => {
+
+        // Returns the first blocking prop at (px,py), or null if none.
+        const blockingProp = (px, py) => {
           const cx = px + HARE_PX / 2, cy = py + HARE_PX / 2
-          return WORLD_PROPS.some(p =>
+          return WORLD_PROPS.find(p =>
             p.collisionR > 0 &&
             Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + HARE_PX / 2
-          )
+          ) ?? null
         }
         const passable = (px, py) =>
-          unlocked.includes(getAreaAtPoint(px + HARE_PX / 2, py + HARE_PX / 2)) && !inProp(px, py)
+          unlocked.includes(getAreaAtPoint(px + HARE_PX / 2, py + HARE_PX / 2)) && !blockingProp(px, py)
+
         if (passable(nx, ny))    return { x: nx, y: ny }
         if (passable(nx, pos.y)) return { x: nx, y: pos.y }
         if (passable(pos.x, ny)) return { x: pos.x, y: ny }
+
+        // ── Escape depenetration ──────────────────────────────────
+        // All three move attempts failed. Check if *current pos* is already
+        // inside a prop (e.g. pet rested/studied inside a tree and state just
+        // returned to idle). If so, push directly away from that prop.
+        const stuck = blockingProp(pos.x, pos.y)
+        if (stuck) {
+          const pcx = stuck.x + stuck.displayW / 2
+          const pcy = stuck.y + stuck.displayH / 2
+          const ex  = pos.x + HARE_PX / 2 - pcx
+          const ey  = pos.y + HARE_PX / 2 - pcy
+          const ed  = Math.hypot(ex, ey) || 1
+          const escX = pos.x + (ex / ed) * WALK_SPEED
+          const escY = pos.y + (ey / ed) * WALK_SPEED
+          // Accept the escape even if still overlapping — we'll clear on
+          // subsequent ticks.  Only reject if it crosses a fence.
+          if (unlocked.includes(getAreaAtPoint(escX + HARE_PX / 2, escY + HARE_PX / 2))) {
+            return { x: escX, y: escY }
+          }
+        }
+
         wanderTargetRef.current = randomWanderTarget(unlocked)
         return { x: pos.x, y: pos.y }
       }

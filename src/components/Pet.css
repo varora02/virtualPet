@@ -576,3 +576,65 @@
   40%  { opacity: 0.85; }
   100% { opacity: 0; }
 }
+
+/* ═══════════════════════════════════════
+   THOUGHT BUBBLE (pet status messages)
+   Positioned absolute inside .world-scene.
+   transform: translate(-50%, -100%) centres horizontally on the
+   pet's mid-point and places it fully above the sprite.
+═══════════════════════════════════════ */
+.thought-bubble {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  background: rgba(255, 255, 255, 0.96);
+  border: 2.5px solid rgba(180, 180, 180, 0.55);
+  border-radius: 18px;
+  padding: 8px 14px 7px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  animation: thought-appear 0.18s ease-out, thought-fade 0.3s ease-in 1.7s forwards;
+}
+
+.thought-bubble__text {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #444;
+  letter-spacing: 0.2px;
+  font-family: inherit;
+}
+
+/* Three descending dots forming the thought tail */
+.thought-bubble__dot {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  border: 2px solid rgba(180, 180, 180, 0.55);
+}
+.thought-bubble__dot--1 {
+  width: 9px; height: 9px;
+  bottom: -14px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+.thought-bubble__dot--2 {
+  width: 6px; height: 6px;
+  bottom: -23px;
+  left: 50%;
+  transform: translateX(-22px);
+}
+.thought-bubble__dot--3 {
+  width: 4px; height: 4px;
+  bottom: -30px;
+  left: 50%;
+  transform: translateX(-30px);
+}
+
+@keyframes thought-appear {
+  from { opacity: 0; transform: translate(-50%, -88%); }
+  to   { opacity: 1; transform: translate(-50%, -100%); }
+}
+@keyframes thought-fade {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}

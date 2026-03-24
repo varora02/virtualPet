@@ -33,6 +33,7 @@ import {
 } from '../worldConfig.js'
 import { useGrassPatches }  from '../hooks/useGrassPatches.js'
 import { useHareMovement }  from '../hooks/useHareMovement.js'
+import ThoughtBubble        from './ThoughtBubble.jsx'
 
 
 // Sprite sheets
@@ -131,6 +132,7 @@ export default function Pet({
   petType            = 'rompy',  // 'rompy' | 'bubby'
   petHunger          = 80,
   greetTrigger       = 0,        // increment to send Bubby to area center + lick
+  thoughtBubble      = null,     // { message: string } | null — shows a thought bubble above the pet
 }) {
   const [isNight, setIsNight] = useState(checkIsNight)
   const onPetClickRef         = useRef(onPetClick)
@@ -516,6 +518,15 @@ export default function Pet({
           </button>
         </div>
       )}
+
+      {/* Thought bubble — floats above the pet when triggered by Game.jsx */}
+      <ThoughtBubble
+        message={thoughtBubble?.message}
+        petPos={petPos}
+        petPx={petType === 'bubby' ? BUBBY_PX : HARE_PX}
+        zIndex={950}
+        visible={!!thoughtBubble}
+      />
 
       {/* ── Cloud/fog cover for locked areas ─────────────────────
           An area is locked when areaTiers[id] === 0 (or missing).

@@ -108,6 +108,9 @@ export function useHareMovement({
   studyResumeTrigger = 0,
   studyStopTrigger   = 0,
   celebrateTrigger   = 0,
+  greetTrigger       = 0,        // Bubby: run to center of current area then lick
+  onGreetArrived     = null,     // called when Bubby reaches the greet target
+  wellYOffset        = 0,        // extra y offset for water target (negative = higher up the well)
   isLevelingUp,
   isPaused,
   grassPatchesRef,
@@ -138,16 +141,19 @@ export function useHareMovement({
   const restTargetRef          = useRef(null)
   const celebrateWaypointsRef  = useRef([])
   const celebrateWpIdxRef      = useRef(0)
-  const isPausedRef        = useRef(isPaused)
-  const onAteRef           = useRef(onAte)
+  const isPausedRef          = useRef(isPaused)
+  const onAteRef             = useRef(onAte)
   const onLevelUpCompleteRef = useRef(onLevelUpComplete)
+  const onGreetArrivedRef    = useRef(onGreetArrived)
+  const greetTargetRef       = useRef(null)
 
   // Keep refs current
-  useEffect(() => { petPosRef.current        = petPos },        [petPos])
-  useEffect(() => { unlockedAreasRef.current = unlockedAreas }, [unlockedAreas])
-  useEffect(() => { isPausedRef.current      = isPaused },      [isPaused])
-  useEffect(() => { onAteRef.current         = onAte },         [onAte])
+  useEffect(() => { petPosRef.current           = petPos },        [petPos])
+  useEffect(() => { unlockedAreasRef.current    = unlockedAreas }, [unlockedAreas])
+  useEffect(() => { isPausedRef.current         = isPaused },      [isPaused])
+  useEffect(() => { onAteRef.current            = onAte },         [onAte])
   useEffect(() => { onLevelUpCompleteRef.current = onLevelUpComplete }, [onLevelUpComplete])
+  useEffect(() => { onGreetArrivedRef.current   = onGreetArrived }, [onGreetArrived])
 
   // ── Direction helper ──────────────────────────────────────────
   function updateDirection(dx, dy) {
@@ -252,7 +258,7 @@ export function useHareMovement({
     }
     targetPosRef.current = {
       x: well.x + well.displayW / 2 - HARE_PX / 2,
-      y: well.y + well.displayH - HARE_PX + 4,
+      y: well.y + well.displayH - HARE_PX + 4 + wellYOffset,
     }
     eatStateRef.current = 'going_water'
     setEatState('going_water')
@@ -313,15 +319,16 @@ export function useHareMovement({
     wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
   }, [studyStopTrigger])
 
-  // ── Celebration run → victory lap through unlocked areas ──────
+  // ── Celebration run → 3-loop run+ball sequence ────────────────
   // Defined AFTER studyStopTrigger so it wins when both fire in the
   // same React render cycle (session-complete fires both together).
+  // Pattern: run to waypoint → stop → ball anim → run to next (×3)
   useEffect(() => {
     if (celebrateTrigger === 0) return
     if (isTired) return
     const unlocked = unlockedAreasRef.current
-    // Pick 4 waypoints spread across unlocked areas
-    const waypoints = Array.from({ length: 4 }, () => randomWanderTarget(unlocked))
+    // Pick 3 waypoints: run→ball×3
+    const waypoints = Array.from({ length: 3 }, () => randomWanderTarget(unlocked))
     celebrateWaypointsRef.current = waypoints
     celebrateWpIdxRef.current = 0
     targetPosRef.current = waypoints[0]
@@ -329,6 +336,23 @@ export function useHareMovement({
     setEatState('going_celebrate')
     updateDirection(waypoints[0].x - petPosRef.current.x, waypoints[0].y - petPosRef.current.y)
   }, [celebrateTrigger])
+
+  // ── Greet: run to center of current area then lick ────────────
+  useEffect(() => {
+    if (greetTrigger === 0) return
+    const pos = petPosRef.current
+    // Compute center of whichever area the pet is currently in
+    const areaId    = getAreaAtPoint(pos.x + HARE_PX / 2, pos.y + HARE_PX / 2)
+    const col       = areaId % 3
+    const screenRow = 2 - Math.floor(areaId / 3)
+    const cx        = col * AREA_W + AREA_W / 2 - HARE_PX / 2
+    const cy        = screenRow * AREA_H + AREA_H / 2 - HARE_PX / 2
+    greetTargetRef.current = { x: cx, y: cy }
+    targetPosRef.current   = { x: cx, y: cy }
+    eatStateRef.current    = 'going_greet'
+    setEatState('going_greet')
+    updateDirection(cx - pos.x, cy - pos.y)
+  }, [greetTrigger])
 
   // ── Main movement loop (50 ms tick) ──────────────────────────
   useEffect(() => {
@@ -338,8 +362,9 @@ export function useHareMovement({
       const state = eatStateRef.current
 
       /**
-       * Clamp a proposed move so the hare never enters a locked area.
+       * Clamp a proposed move so the pet never enters a locked area.
        * Tries: full move → x-only → y-only → stay + new wander target.
+       * Used for dying-walk (prop collisions intentionally not checked — pet walks up to tree).
        */
       const clampToUnlocked = (nx, ny, pos) => {
         const unlocked = unlockedAreasRef.current
@@ -349,6 +374,29 @@ export function useHareMovement({
           return { x: nx, y: pos.y }
         if (unlocked.includes(getAreaAtPoint(pos.x + HARE_PX / 2, ny + HARE_PX / 2)))
           return { x: pos.x, y: ny }
+        wanderTargetRef.current = randomWanderTarget(unlocked)
+        return { x: pos.x, y: pos.y }
+      }
+
+      /**
+       * Like clampToUnlocked but also avoids prop collision radii.
+       * Used for all free-movement states (wander, run, greet) so the pet
+       * never clips through a tree or well during travel.
+       */
+      const clampToPassable = (nx, ny, pos) => {
+        const unlocked = unlockedAreasRef.current
+        const inProp = (px, py) => {
+          const cx = px + HARE_PX / 2, cy = py + HARE_PX / 2
+          return WORLD_PROPS.some(p =>
+            p.collisionR > 0 &&
+            Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + HARE_PX / 2
+          )
+        }
+        const passable = (px, py) =>
+          unlocked.includes(getAreaAtPoint(px + HARE_PX / 2, py + HARE_PX / 2)) && !inProp(px, py)
+        if (passable(nx, ny))    return { x: nx, y: ny }
+        if (passable(nx, pos.y)) return { x: nx, y: pos.y }
+        if (passable(pos.x, ny)) return { x: pos.x, y: ny }
         wanderTargetRef.current = randomWanderTarget(unlocked)
         return { x: pos.x, y: pos.y }
       }
@@ -366,6 +414,7 @@ export function useHareMovement({
           arrivedAtTreeRef.current = true; setArrivedAtTree(true)
           return
         }
+        // Use clampToUnlocked (not clampToPassable) — pet intentionally walks inside tree collision zone to rest
         const clamped = clampToUnlocked(pos.x + (dx / dist) * WALK_SPEED, pos.y + (dy / dist) * WALK_SPEED, pos)
         updateDirection(dx, dy)
         petPosRef.current = clamped; setPetPos(clamped)
@@ -374,7 +423,7 @@ export function useHareMovement({
 
       // ── Frozen states ─────────────────────────────────────────
       if (state === 'eating' || state === 'drinking' || state === 'resting' || state === 'leveling' ||
-          state === 'study'  || state === 'study_pause') return
+          state === 'study'  || state === 'study_pause' || state === 'celebrate_ball') return
 
       const pos = petPosRef.current
 
@@ -397,13 +446,15 @@ export function useHareMovement({
           }, 4000)
           return
         }
-        const clamped = clampToUnlocked(pos.x + (dx / dist) * RUN_SPEED, pos.y + (dy / dist) * RUN_SPEED, pos)
+        const clamped = clampToPassable(pos.x + (dx / dist) * RUN_SPEED, pos.y + (dy / dist) * RUN_SPEED, pos)
         updateDirection(dx, dy)
         petPosRef.current = clamped; setPetPos(clamped)
         return
       }
 
       // ── Run to tree (study) ───────────────────────────────────
+      // Uses clampToUnlocked (not clampToPassable) so the pet can enter
+      // the tree's collision zone to actually reach and rest at the tree.
       if (state === 'going_study') {
         const tx = targetPosRef.current.x, ty = targetPosRef.current.y
         const dx = tx - pos.x, dy = ty - pos.y
@@ -419,31 +470,67 @@ export function useHareMovement({
         return
       }
 
-      // ── Celebration run (victory lap) ────────────────────────
+      // ── Celebration run → stop + ball at each waypoint ───────
+      // Pattern: run to waypoint → freeze as 'celebrate_ball' (1260 ms)
+      //          → run to next waypoint × 3, then return to idle.
       if (state === 'going_celebrate') {
         const tx = targetPosRef.current.x, ty = targetPosRef.current.y
         const dx = tx - pos.x, dy = ty - pos.y
         const dist = Math.hypot(dx, dy)
         if (dist < RUN_SPEED + 1) {
+          // Arrived — snap to waypoint and play ball animation (stopped)
+          petPosRef.current = { x: tx, y: ty }; setPetPos({ x: tx, y: ty })
+          eatStateRef.current = 'celebrate_ball'; setEatState('celebrate_ball')
           const nextIdx = celebrateWpIdxRef.current + 1
-          if (nextIdx < celebrateWaypointsRef.current.length) {
-            celebrateWpIdxRef.current = nextIdx
-            targetPosRef.current = celebrateWaypointsRef.current[nextIdx]
-            updateDirection(targetPosRef.current.x - pos.x, targetPosRef.current.y - pos.y)
-          } else {
-            // Lap complete — return to idle wander
-            eatStateRef.current = 'idle'; setEatState('idle')
-            wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
-          }
+          setTimeout(() => {
+            if (nextIdx < celebrateWaypointsRef.current.length) {
+              celebrateWpIdxRef.current = nextIdx
+              const next = celebrateWaypointsRef.current[nextIdx]
+              targetPosRef.current = next
+              eatStateRef.current = 'going_celebrate'; setEatState('going_celebrate')
+              updateDirection(next.x - petPosRef.current.x, next.y - petPosRef.current.y)
+            } else {
+              // All 3 loops done — return to idle wander
+              eatStateRef.current = 'idle'; setEatState('idle')
+              wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+            }
+          }, 1260) // 9 frames × 140 ms = ball anim duration
           return
         }
-        const clamped = clampToUnlocked(pos.x + (dx / dist) * RUN_SPEED, pos.y + (dy / dist) * RUN_SPEED, pos)
+        const clamped = clampToPassable(pos.x + (dx / dist) * RUN_SPEED, pos.y + (dy / dist) * RUN_SPEED, pos)
+        updateDirection(dx, dy)
+        petPosRef.current = clamped; setPetPos(clamped)
+        return
+      }
+
+      // ── Greet run → area center, then freeze for lick ────────────
+      if (state === 'going_greet') {
+        const tx = greetTargetRef.current?.x ?? targetPosRef.current.x
+        const ty = greetTargetRef.current?.y ?? targetPosRef.current.y
+        const dx = tx - pos.x, dy = ty - pos.y
+        const dist = Math.hypot(dx, dy)
+        if (dist < RUN_SPEED + 1) {
+          greetTargetRef.current = null
+          // Hold in resting (frozen) for lick duration, then return to idle wander
+          eatStateRef.current = 'resting'; setEatState('resting')
+          if (onGreetArrivedRef.current) onGreetArrivedRef.current()
+          setTimeout(() => {
+            if (eatStateRef.current === 'resting') {
+              eatStateRef.current = 'idle'; setEatState('idle')
+              wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+            }
+          }, 1600)  // slightly longer than lick anim (1540ms)
+          return
+        }
+        const clamped = clampToPassable(pos.x + (dx / dist) * RUN_SPEED, pos.y + (dy / dist) * RUN_SPEED, pos)
         updateDirection(dx, dy)
         petPosRef.current = clamped; setPetPos(clamped)
         return
       }
 
       // ── Run to well ───────────────────────────────────────────
+      // Uses clampToUnlocked so the pet can always reach the water source
+      // regardless of prop collision zones along the path.
       if (state === 'going_water') {
         const tx = targetPosRef.current.x, ty = targetPosRef.current.y
         const dx = tx - pos.x, dy = ty - pos.y
@@ -471,7 +558,15 @@ export function useHareMovement({
         wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
         return
       }
-      const clamped = clampToUnlocked(pos.x + (dx / dist) * WALK_SPEED, pos.y + (dy / dist) * WALK_SPEED, pos)
+      const nx = pos.x + (dx / dist) * WALK_SPEED
+      const ny = pos.y + (dy / dist) * WALK_SPEED
+      let clamped = clampToPassable(nx, ny, pos)
+      // Stuck escape: if clampToPassable couldn't move us (e.g. trapped inside a
+      // tree's collision zone), fall back to unlocked movement so the pet can
+      // walk out of the exclusion zone rather than freezing permanently.
+      if (clamped.x === pos.x && clamped.y === pos.y) {
+        clamped = clampToUnlocked(nx, ny, pos)
+      }
       updateDirection(dx, dy)
       petPosRef.current = clamped; setPetPos(clamped)
     }, 50)

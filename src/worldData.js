@@ -466,7 +466,7 @@ export const WORLD_PROPS = [
   // ── Well — BL (area 0), right-centre — water source ──────────
   { id: 'well_0', type: 'well',
     areaId: 0, tier: 1, ...pos(0, 0.73, 0.28),
-    displayW: 100, displayH: 100, collisionR: 52,
+    displayW: 100, displayH: 100, collisionR: 0,
     interactive: true, interactType: 'water' },
 
   // ── Trees — 1 per area (BL→MR), plus forest cluster in TR ────
@@ -606,20 +606,20 @@ export const WORLD_PROPS = [
   // lamp_6: TL area (6), relY=0.55, clear of path row 1.
   { id: 'lamp_1', type: 'lamp1',
     areaId: 5, tier: 1, ...pos(5, 0.06, 0.20),
-    displayW: 40, displayH: 70, collisionR: 24,
+    displayW: 40, displayH: 70, collisionR: 0,
     emitsLight: true, glowRadius: 90, glowOffsetY: 0.12 },
 
   { id: 'lamp_6', type: 'lamp1',
     areaId: 6, tier: 1, ...pos(6, 0.65, 0.55),
-    displayW: 40, displayH: 70, collisionR: 24,
+    displayW: 40, displayH: 70, collisionR: 0,
     emitsLight: true, glowRadius: 90, glowOffsetY: 0.12 },
 
-  // ── Rocks — decorative scatter ────────────────────────────────
-  { id: 'rock_0', type: 'rock_01', areaId: 0, tier: 1, ...pos(0, 0.44, 0.68), displayW: 60, displayH: 50, collisionR: 30 },
-  { id: 'rock_1', type: 'rock_03', areaId: 1, tier: 1, ...pos(1, 0.76, 0.63), displayW: 50, displayH: 30, collisionR: 26 },
-  { id: 'rock_2', type: 'rock_01', areaId: 2, tier: 1, ...pos(2, 0.08, 0.70), displayW: 60, displayH: 50, collisionR: 30 },
-  { id: 'rock_3', type: 'rock_03', areaId: 4, tier: 1, ...pos(4, 0.78, 0.70), displayW: 50, displayH: 30, collisionR: 26 },
-  { id: 'rock_4', type: 'rock_01', areaId: 6, tier: 1, ...pos(6, 0.73, 0.66), displayW: 60, displayH: 50, collisionR: 30 },
+  // ── Rocks — decorative scatter (no collision — pet walks through freely) ──
+  { id: 'rock_0', type: 'rock_01', areaId: 0, tier: 1, ...pos(0, 0.44, 0.68), displayW: 60, displayH: 50, collisionR: 0 },
+  { id: 'rock_1', type: 'rock_03', areaId: 1, tier: 1, ...pos(1, 0.76, 0.63), displayW: 50, displayH: 30, collisionR: 0 },
+  { id: 'rock_2', type: 'rock_01', areaId: 2, tier: 1, ...pos(2, 0.08, 0.70), displayW: 60, displayH: 50, collisionR: 0 },
+  { id: 'rock_3', type: 'rock_03', areaId: 4, tier: 1, ...pos(4, 0.78, 0.70), displayW: 50, displayH: 30, collisionR: 0 },
+  { id: 'rock_4', type: 'rock_01', areaId: 6, tier: 1, ...pos(6, 0.73, 0.66), displayW: 60, displayH: 50, collisionR: 0 },
 
   // ══════════════════════════════════════════════════════════
   // ──  TIER 1 DECORATIONS (Upper Areas) ────────────────────
@@ -662,24 +662,19 @@ export const WORLD_PROPS = [
   { id: 't1_0_bush', type: 'bush_1', isDecor: true, areaId: 0, tier: 1, ...pos(0, 0.50, 0.50), displayW: 44, displayH: 40, collisionR: 0 },
 
   // ── AREA 2 (BR) ──────────────────────────────────────────
-  // Tier 1: rock + well + ground cover
+  // Tier 1: rock + ground cover (well removed — it's only in BL)
   { id: 't1_2_g3', type: 'grass_3', isDecor: true, areaId: 2, tier: 1, ...pos(2, 0.30, 0.40), displayW: 28, displayH: 32, collisionR: 0 },
   { id: 't1_2_g6', type: 'grass_6', isDecor: true, areaId: 2, tier: 1, ...pos(2, 0.35, 0.45), displayW: 28, displayH: 32, collisionR: 0 },
   { id: 't1_2_stone', type: 'stone_10', isDecor: true, areaId: 2, tier: 1, ...pos(2, 0.70, 0.65), displayW: 40, displayH: 35, collisionR: 0 },
-  { id: 'well_2', type: 'well',
-    areaId: 2, tier: 1, ...pos(2, 0.55, 0.28),
-    displayW: 100, displayH: 100, collisionR: 48 },
 
-  // Tier 2: tree (moved from tier 1), a second rock, and a bush
+  // Tier 2: rock and a bush
   { id: 't2_2_rock', type: 'rock_03', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.78, 0.60), displayW: 50, displayH: 30, collisionR: 0 },
   { id: 't2_2_bush', type: 'bush_2', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.18, 0.52), displayW: 48, displayH: 42, collisionR: 0 },
-  { id: 't2_2_flower', type: 'flower_4', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.48, 0.55), displayW: 20, displayH: 18, collisionR: 0 },
-  { id: 't2_2_flower2', type: 'flower_9', isDecor: true, areaId: 2, tier: 2, ...pos(2, 0.52, 0.60), displayW: 20, displayH: 18, collisionR: 0 },
 
-  // Tier 3: lantern near the well to light it up
+  // Tier 3: lantern next to the well in BL (area 0) to light it up at night
   { id: 'lamp_2', type: 'lamp1',
-    areaId: 2, tier: 3, ...pos(2, 0.68, 0.22),
-    displayW: 40, displayH: 70, collisionR: 20,
+    areaId: 0, tier: 3, ...pos(0, 0.87, 0.16),
+    displayW: 40, displayH: 70, collisionR: 0,
     emitsLight: true, glowRadius: 100, glowOffsetY: 0.12 },
 
 ]

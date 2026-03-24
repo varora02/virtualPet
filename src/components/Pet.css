@@ -320,13 +320,13 @@
    Brightness boosted vs. before: inner stop at 0.72, falloff to 55%.
 ──────────────────────────────────────────────────────────────── */
 /* Pixel-art light: hard concentric rings (no smooth gradients).
-   Square shape + px-stop radial = blocky tile-style illumination.      */
+   Square shape + px-stop radial = blocky tile-style illumination.
+   Innermost circle removed — glow starts from the second ring.        */
 .light-glow {
   position: absolute;
   border-radius: 0;
   background: radial-gradient(circle at center,
-    rgba(255, 250, 180, 0.90)  0px  10px,
-    rgba(255, 210,  90, 0.65) 10px  22px,
+    rgba(255, 210,  90, 0.65)  0px  22px,
     rgba(255, 155,  30, 0.38) 22px  40px,
     rgba(200,  90,   5, 0.16) 40px  62px,
     rgba(140,  50,   0, 0.06) 62px  80px,
@@ -337,11 +337,11 @@
   user-select: none;
 }
 
-/* Campfire: extra-warm pixel rings + step flicker (scale snaps, not slides) */
+/* Campfire: extra-warm pixel rings + step flicker (scale snaps, not slides)
+   Innermost circle removed — glow starts from the second ring.             */
 .campfire-glow {
   background: radial-gradient(circle at center,
-    rgba(255, 240, 100, 1.00)  0px  12px,
-    rgba(255, 190,  40, 0.80) 12px  28px,
+    rgba(255, 190,  40, 0.80)  0px  28px,
     rgba(255, 120,  10, 0.50) 28px  52px,
     rgba(200,  70,   0, 0.22) 52px  80px,
     rgba(140,  30,   0, 0.08) 80px 110px,

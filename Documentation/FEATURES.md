@@ -1,264 +1,126 @@
 # Features Guide
 
-## Pet Care System
+## Two Pets
 
-Your virtual hare has four primary stats that fluctuate over time:
+### Rompy (hare)
+The default pet. Wanders the world, walks to food/water/rest/study spots in response to button presses, does a victory lap when played with.
 
-- **Hunger** (0–100): Decreases as the pet plays and studies. Restored by eating grass patches.
-- **Thirst** (0–100): Decreases over time. Restored by drinking from the water area.
-- **Energy** (0–100): Decreases during study sessions and active play. Restored by resting in sheltered spots.
-- **Happiness** (0–100): Increases through interactions (feeding, studying together, reaching milestones). Affected by neglect.
+### Bubby (tuxedo cat)
+Unlockable by pressing the pet-switcher button in the header. Moves independently and has a richer idle animation set — randomly plays lick, yawn, or ear-scratch while sitting. Purrs briefly after you play with her. Responds to campfire proximity with ambient crackling audio.
 
-### Mood System
+**Switch pets:** 🐱 / 🐰 button in the game header.
 
-The hare's mood is derived from the average of all four stats:
-- **Happy** (≥80): Walks with a spring in their step.
-- **Neutral** (50–79): Normal behavior.
-- **Sad** (25–49): Slower movement, less engaged.
-- **Critical** (<25): The hare will seek out a tree and rest (dying-walk state) until stats recover.
+---
+
+## Pet Stats
+
+Four stats (0–100) decay over time and are restored by interactions:
+
+- **Hunger** — Restored by feeding. Decreases slowly during wandering.
+- **Thirst** — Restored by watering. Decreases slowly over time.
+- **Energy** — Restored by resting. Decreases during study sessions and active play.
+- **Happiness** — Increases through play, study, and milestone events. Decreases if other stats fall low.
 
 ---
 
 ## Core Interactions
 
-### 1. Feeding (Interactive Grass Patches)
+### Feed 🍎
+Pet walks to the nearest grass patch and eats (+hunger, +1 coin). Grass respawns after 45s.
 
-**How it works:**
-- 1–2 grass patches spawn randomly in each unlocked area.
-- Click the "Feed" button in the sidebar or double-click a patch.
-- The hare walks to the nearest grass patch and eats (4-second animation).
-- Once consumed, the patch disappears and reappears after 45 seconds.
+### Water 💧
+Pet walks to the well and drinks (+thirst, +1 coin).
 
-**Visual feedback:**
-- Hare sprite switches to eating animation (smaller sprite, 4 frames, 4 seconds total).
-- Hunger stat increases by ~25 points.
+### Play 🎾
+Pet performs a victory animation (+happiness, +XP, +1 coin). May trigger a level-up. If playing as Bubby, she purrs contentedly 0.8s after playing.
 
-### 2. Watering
+### Rest 😴
+Pet stands still for 5 seconds (+energy, +1 coin).
 
-**How it works:**
-- Click the "Water" button to send the hare to the water trough area.
-- The hare runs to the nearest unlocked water interactive prop.
-- Drinks for 4 seconds (drinking animation).
-- Thirst stat fully restores.
-
-**Visual feedback:**
-- Hare sprite switches to drinking animation (4 frames, 4 seconds).
-
-### 3. Resting
-
-**How it works:**
-- Click the "Rest" button to send the hare to a shelter.
-- The hare runs to the nearest rest interactive prop (currently trees with shelters).
-- Rests for 5 seconds (idle pose with slight bobbing).
-- Energy increases significantly.
-
-**Visual feedback:**
-- Hare sprite switches to resting animation (4 frames, 1.2-second loop, 5 seconds total rest).
-
-### 4. Studying (Pomodoro Integration)
-
-**How it works:**
-- Use the Pomodoro timer widget to start a 25-minute work session.
-- When you click ▶ **Start**, the hare walks to the nearest unlocked tree and enters study mode.
-- The hare displays the reading sprite, alternating between two focused reading poses every 6 seconds.
-- Click ⏸ **Pause**: The hare switches to a closed-book pose (row 1 of the reading sprite) and awaits your resume.
-- Click ▶ **Resume**: The hare returns to the active reading loop (rows 3 & 4).
-- Click 🔄 **Reset** or let the timer finish: The hare returns to idle and you earn bonus happiness + experience.
-- After a work session, a 5-minute break timer starts (hare continues wandering freely).
-
-**Timing:**
-- Active study: Each row displays for 6 seconds (alternating rows 3 ↔ 4).
-- Reading frames: 6 frames per row, cycling every 6 seconds.
-- Frame rate: ~1 frame per second.
-
-**Mood impact:**
-- Studying **increases happiness** and **decreases energy**.
-- Completing a full 25-minute session grants **bonus stats and XP** (level progression).
+### Pomodoro Study Timer ⏱
+Start a 25-minute work session. Rompy walks to the nearest tree and reads; Bubby continues wandering nearby. When the session completes: +hunger, +happiness, +energy, +10 coins. A stretch popup appears offering a bonus (+energy, +happiness, +5 coins).
 
 ---
 
 ## Level System
 
-### Experience & Leveling
+Every interaction earns XP. Every 100 XP = 1 level. Level-ups trigger a 2-second golden flash animation and a popup.
 
-- Each action (feeding, watering, resting, completing study sessions) grants experience points.
-- Complete study sessions grant **bonus XP** (~10 points) compared to basic interactions.
-- When you accumulate enough XP, the hare levels up.
+Click the pet to inspect its current level, XP, and XP-to-next-level.
 
-**Level-up animation:**
-- The hare flashes with a golden glow while staying in idle pose.
-- A popup appears above the hare showing: ⭐ Level N, current XP / required XP.
-- Duration: ~2 seconds of visual feedback.
-
-### Experience Formula
-
-- Base XP per interaction: 10–15 points depending on action type.
-- Bonus XP for completing a 25-min study session: +10 points.
-- XP per level: Configurable (default 100 points).
-
----
-
-## Abilities & Special Features
-
-### Ghost Bud
-
-When unlocked, a translucent white-tinted copy of the hare follows 90px to the right and 10px above.
-
-**Activation:**
-- Unlocked when reaching a certain level (configurable).
-- Toggle on/off via the sidebar "Ghost Bud" checkbox.
-
-**Purpose:**
-- Cosmetic companion; mirrors all hare movements and animations.
-- Adds visual depth and personality to the pet.
+**Shop unlocks gated by level:**
+- Lv2 — Ghost Bud (ability: translucent companion mirrors pet for 15s)
+- Lv4 — Dumbbell Lift animation (Bubby pumps iron after a workout check-in)
+- Lv7 — Happy Hop animation (Bubby jumps excitedly on level-up/play)
 
 ---
 
 ## World & Area System
 
-### The 3×3 World Grid
-
-The world is divided into 9 areas arranged in a 3×3 grid:
+### Layout
 
 ```
-TL(6)  TM(7)  TR(8)    ← Top row
-ML(3)  MM(4)  MR(5)    ← Middle row
-BL(0)  BM(1)  BR(2)    ← Bottom row (hare spawns in BL)
+TL(6)  TM(7)  TR(8)   ← Top row
+ML(3)  MM(4)  MR(5)   ← Middle row
+BL(0)  BM(1)  BR(2)   ← Bottom row  (pets spawn in BL)
 ```
 
-Each area is 7 tiles wide × 4 tiles tall (448×256 pixels).
+Each area is 448×256 px. The full world is 1344×768 px.
 
-### Area Unlocking
+### Progression
 
-- The hare starts with only the **Bottom-Left (BL, area 0)** unlocked.
-- As you progress (accumulate XP/level up), new areas unlock automatically.
-- Unlocked areas are indicated by the absence of fences.
-- The hare cannot move into locked areas (fences block movement at edges).
+Area 0 (BL) starts unlocked at tier 1. Spend coins in the shop to unlock adjacent areas and upgrade existing areas to tier 2. Tier upgrades change what props appear in that area.
 
-### Paths & Navigation
+Fences close off locked areas and disappear when an area unlocks.
 
-An L-shaped dirt path connects areas TL → TM → MM → MR, making traversal intuitive. The path consists of 4 tile types:
-- **Horizontal**: Ground_path_41
-- **Vertical**: Ground_path_38
-- **Corner L→D**: Ground_path_30 (left to down)
-- **Corner D→R**: Ground_path_34 (down to right)
+### Props
 
----
+- **Trees** — rest spots and Rompy's study locations
+- **Well** — water source
+- **Campfire** — decorative; plays crackling audio when Bubby wanders nearby
+- **Lamps** — glow at night
+- **Rocks, grass tufts, flowers** — decorative
+- **Forest cluster** — 8 trees densely packed in TR area
 
-## Interactive Props in the World
+### Night & Day
 
-### Trees (Rest & Study)
-
-- **Interactive type:** `rest`
-- **Count:** Multiple trees scattered across TL, TM, ML, MM, MR areas.
-- **Function:** When the hare uses the "Rest" button or starts a study session, it targets the nearest accessible tree.
-- **Visual:** Tall sprites with depth-sorted shadow.
-
-### Water Trough / Water Source
-
-- **Interactive type:** `water`
-- **Location:** Typically in the MR (Middle-Right) area.
-- **Function:** Target for the "Water" button.
-- **Visual:** Detailed prop with glow effect at night.
-
-### Campfire
-
-- **Interactive type:** None (decorative).
-- **Location:** Visible in certain areas.
-- **Function:** Provides a warm glow at night (emits light with radial-gradient CSS animation).
-- **Visual:** Animated 6-frame sprite with flickering effect.
-
-### Decorative Elements
-
-- **Grass tufts & flowers:** Non-interactive, add ambiance.
-- **Shadows:** Beneath taller props for depth perception.
+Night runs 20:00–07:00 PST. The scene darkens and prop glows (campfire, lamps, well) activate.
 
 ---
 
-## Night & Day Cycle
+## Shop
 
-The world transitions between day and night based on **Pacific Standard Time (PST)**:
+Open with the 🛍 button. Three tabs:
 
-- **Night:** 16:00 (4 PM) to 03:00 (3 AM).
-- **Day:** 03:00 (3 AM) to 16:00 (4 PM).
-
-### Night Features
-
-- Entire scene darkens with an overlay (background: `rgba(10, 20, 60, 0.55)`).
-- Light sources (campfire, water trough) emit warm glows (z-index above overlay).
-- Hare's sprite brightness/saturation may be adjusted to match atmosphere.
-- Glows use `mix-blend-mode: screen` for realistic light blending.
+- **World** — unlock new areas and upgrade existing areas to tier 2 (costs coins)
+- **Items** — purchase props like basketball or soccer ball (purely decorative)
+- **Animations** — unlock special animations for Bubby (Dumbbell Lift, Happy Hop)
 
 ---
 
-## Grass Patch Mechanics
+## Audio
 
-### Spawning & Visibility
-
-- When an area unlocks, 1–2 grass patches are automatically added.
-- Patches appear at random positions, avoiding collision radii of existing props.
-- Each patch is a small SVG (58×58 px) with a subtle hover effect.
-
-### Consumption & Replenishment
-
-- When the hare eats a patch, it becomes invisible immediately.
-- After 45 seconds, the patch reappears (visual transition with opacity).
-- Multiple patches can exist in the same area; the hare targets the nearest.
+- Background music — toggle with 🔇/🎵 button in header (starts off, click to enable)
+- SFX on every action (eat, drink, play, rest, coin reward, level-up, shop)
+- Meow when you click Bubby
+- Campfire proximity crackle
+- Unlock fanfare when purchasing area upgrades
+- Pomodoro completion chime
 
 ---
 
-## Session Management
+## Ambient Life
 
-### Starting a Game
-
-1. Enter your name in the sidebar.
-2. Click "Start Game" — the hare spawns in the bottom-left area.
-3. All stats begin at 50 (neutral).
-
-### Pausing
-
-- Click the "⏸ Pause" button to halt all movement and animations.
-- The hare freezes in place; timers continue internally.
-- Click "▶ Resume" to continue from where you left off.
-
-### Resetting
-
-- Click "🔄 Reset Game" to return to the initial state.
-- All stats reset to 50, level resets to 1, and the hare returns to the spawn point.
-- Only unlocked areas persist (re-locking happens on hard reset if implemented).
+A blue robin occasionally flies in from the edge of the world, perches on a prop or tree-top with a slow chest-breathing animation, then flies off. Purely decorative.
 
 ---
 
-## Sidebar Controls
+## Couple Collaboration
 
-The right sidebar displays:
-
-- **Pet stats:** Hunger, Thirst, Energy, Happiness (as progress bars).
-- **Action buttons:** Feed, Water, Rest (trigger immediate hare behaviors).
-- **Pomodoro timer:** 25-min work / 5-min break display and controls.
-- **Ghost Bud toggle:** Enable/disable the companion feature.
-- **Game controls:** Start, Pause, Reset buttons.
-- **Pet info:** Name, current level, XP progress.
+Both Varun and Leena see the same pet in real time via Firebase Firestore. Any action either person takes (feed, water, play, rest, pomodoro) is reflected immediately for the other person and logged in the shared activity feed.
 
 ---
 
-## Stat Decay Over Time
+## Ghost Bud (Ability, Lv2)
 
-Stats decrease on different schedules:
-
-- **Hunger:** Decreases while the hare moves or studies (~1 point per 10 seconds of activity).
-- **Thirst:** Decreases slowly over time (~1 point per 30 seconds).
-- **Energy:** Decreases during study sessions and active running (~1 point per 5 seconds during study).
-- **Happiness:** Decreases if stats drop too low or the hare is idle for extended periods.
-
-The exact decay rates are configurable in `Game.jsx` via the simulation loop.
-
----
-
-## Tips for Engagement
-
-1. **Balance care:** Rotate between feeding, watering, and resting to keep all stats high.
-2. **Study regularly:** Complete Pomodoro sessions for bonus XP and happiness boosts.
-3. **Explore:** Unlock new areas by leveling up to discover new props and resting spots.
-4. **Watch the mood:** A happy hare (avg stat ≥80) animates more cheerfully and engages more readily with interactions.
-5. **Study at night:** Schedule study sessions to see the campfire and water trough glows in action.
+A white translucent copy of the active pet follows 90px to the right and 10px above, mirroring all movement and animations. Toggle on/off via the abilities section inside the action drawer.

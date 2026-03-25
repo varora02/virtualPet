@@ -50,11 +50,14 @@ import unlockAreaUrl   from '../assets/sounds/sfx/unlock_area.mp3'
 import catPurrUrl      from '../assets/sounds/sfx/cat_purr.mp3'
 import timerFinishUrl  from '../assets/sounds/sfx/timer_finish.mp3'
 
+// Background music — treated like any other sound but loops forever
+import ambientDayUrl   from '../assets/sounds/music/ambient_day.mp3'
+
 /**
  * Map of sound IDs → asset URLs.
  * Keys available: eat, drink, coin, levelup, celebrate, thought, rest,
  *                 click, toggle, open, close, error, meow, campfire,
- *                 unlock_area, cat_purr, timer_finish
+ *                 unlock_area, cat_purr, timer_finish, ambient_day
  *
  * @type {Record<string, string | null>}
  */
@@ -79,7 +82,13 @@ const SOUND_MAP = {
   unlock_area:  unlockAreaUrl,
   cat_purr:     catPurrUrl,
   timer_finish: timerFinishUrl,
+  // Music (looped — see LOOPING_SOUNDS below)
+  ambient_day:  ambientDayUrl,
 }
+
+// Sounds that should loop indefinitely (background music, ambient loops).
+// The preload effect sets audio.loop = true for these IDs.
+const LOOPING_SOUNDS = new Set(['ambient_day'])
 
 // Default volume for each sound (0–1). Override here or via setVolume().
 const DEFAULT_VOLUME = {
@@ -104,6 +113,8 @@ const DEFAULT_VOLUME = {
   unlock_area:   0.55,
   cat_purr:      0.40,
   timer_finish:  0.55,
+  // Music
+  ambient_day:   0.55,
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -132,6 +143,7 @@ export function useSoundManager() {
         const audio = new Audio(url)
         audio.preload = 'auto'
         audio.volume  = (DEFAULT_VOLUME[id] ?? 0.6) * volumeRef.current
+        if (LOOPING_SOUNDS.has(id)) audio.loop = true
         audioPoolRef.current[id] = audio
       } catch (e) {
         console.warn(`[useSoundManager] Failed to preload sound "${id}":`, e)

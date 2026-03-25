@@ -10,7 +10,7 @@ import basketballUrl  from '../assets/svgs/basketball.svg'
 import soccerballUrl  from '../assets/svgs/soccerball.svg'
 import { WORLD_PROPS } from '../worldData'
 import { useSoundManager }     from '../hooks/useSoundManager'
-import { useBackgroundMusic }  from '../hooks/useBackgroundMusic'
+import BirdSpawner            from '../components/BirdSpawner'
 import './Game.css'
 
 const STORAGE_KEY = 'virtualpet_progression'
@@ -140,20 +140,21 @@ function Game({ user }) {
   // then trigger setUpgradedArea when the modal's onClose fires.
   const pendingFlashAreaRef = useRef(null)
 
-  // ── Sound manager + background music ─────────────────────────
+  // ── Sound manager ─────────────────────────────────────────────
   const { play, stop } = useSoundManager()
-  const [isNight, setIsNight] = useState(() => {
-    const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours()
-    return h >= 20 || h < 7
-  })
-  useEffect(() => {
-    const id = setInterval(() => {
-      const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours()
-      setIsNight(h >= 20 || h < 7)
-    }, 60000)
-    return () => clearInterval(id)
-  }, [])
-  const { musicMuted, toggleMusic } = useBackgroundMusic(isNight)
+
+  // ── Background music (ambient_day lives in the sound pool, loops forever)
+  // Music starts muted; user presses 🔇 to turn it on.
+  const [musicMuted, setMusicMuted] = useState(true)
+  const toggleMusic = () => {
+    if (musicMuted) {
+      play('ambient_day')   // first call on this Audio instance — browser allows
+      setMusicMuted(false)  // because this runs directly inside a click handler
+    } else {
+      stop('ambient_day')
+      setMusicMuted(true)
+    }
+  }
 
   const hasCheckedDaily                 = useRef(false)
   const hasCheckedNotif                 = useRef(false)
@@ -863,6 +864,7 @@ function Game({ user }) {
           thoughtBubble={thoughtBubble}
           unlockedAnimations={pet.unlockedAnimations || []}
         />
+        <BirdSpawner worldWidth={1344} />
       </div>
 
       {/* Bottom panels */}

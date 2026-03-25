@@ -4,6 +4,47 @@ This guide explains how sprite sheets are structured, CSS animations work, and h
 
 ---
 
+## Bubby (Tuxedo Cat) Animations
+
+Bubby uses horizontal-only sprite sheets (one direction per file) at 56×56 native frames, rendered at `BUBBY_PX = 140px` (scale ≈ 2.5×). The CSS class is swapped by `catSpecialAnim` state in Pet.jsx.
+
+| Animation | File | Frames | Sheet W (native) | CSS Class | Trigger |
+|-----------|------|--------|-----------------|-----------|---------|
+| Walk east | `cat_walk_east.png` | 8 | 448px | `bubby-walk` | idle wander, east |
+| Walk west | `cat_walk_west.png` | 8 | 448px | `bubby-walk` | idle wander, west |
+| Run east | `cat_run_east.png` | 6 | 336px | `bubby-run` | going to food/water/play |
+| Run west | `cat_run_west.png` | 6 | 336px | `bubby-run` | going |
+| Eat | `cat_eat_*.png` | 7 | 392px | `bubby-eat` | eating grass |
+| Drink | `cat_drink_south.png` | 6 | 336px | `bubby-drink` | drinking at well |
+| Sit | `cat_sit_*.png` | 8 | 448px | `bubby-sit` | idle sit |
+| Lick | `cat_lick_south.png` | 12 | 672px | `bubby-lick` | random idle (50%) |
+| Yawn | `cat_yawn_south.png` | 11 | 616px | `bubby-yawn` | random idle (30%) |
+| Ear-scratch | `cat_idle.png` | 8 | 640px | `bubby-scratch` | random idle (20%) — 32×80px native |
+| Dumbbell Lift | `cat_stand.png` | 8 | 448px | `bubby-workout` | workout check-in, shop Lv4 |
+| Happy Hop | `cat_jump_*.png` | 8 | 448px | `bubby-hop` | play/level-up, shop Lv7 |
+
+**Idle scheduler** — fires every 12–22s when Bubby is sitting idle. Picks lick/yawn/scratch at random (50/30/20%). Durations: lick 1680ms, yawn 1540ms, scratch 880ms.
+
+**Special note on ear-scratch** — `cat_idle.png` has 32×80px native frames (different from the 56×56 standard). Uses `SCRATCH_SCALE = BUBBY_PX / 32 = 2.5`.
+
+---
+
+## Blue Robin (Ambient Bird) Animations
+
+The robin uses 56×56 native frames at 1.5× scale (84×84 displayed), managed by `BirdSpawner.jsx`.
+
+| Animation | File | Frames | CSS Class | Speed |
+|-----------|------|--------|-----------|-------|
+| Fly east | `bird/bird_fly_east.png` | 9 | `bird-fly` | 1.08s steps(9) infinite |
+| Fly west | `bird/bird_fly_west.png` | 9 | `bird-fly` | 1.08s steps(9) infinite |
+| Perch (chest breathe) | `bird/bird_perch.png` | 5 | `bird-perch` | 6s steps(5) infinite — very slow |
+
+The bird follows a phase machine: `appear → flying_in → perching → flying_out → (cooldown) → repeat`.
+
+---
+
+---
+
 ## Sprite Sheet Fundamentals
 
 ### Scale & Resolution

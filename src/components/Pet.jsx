@@ -133,6 +133,7 @@ export default function Pet({
   petHunger          = 80,
   greetTrigger       = 0,        // increment to send Bubby to area center + lick
   thoughtBubble      = null,     // { message: string } | null — shows a thought bubble above the pet
+  unlockedAnimations = [],       // animation IDs unlocked in shop: 'ball_roll', 'stretch', 'happy_hop'
 }) {
   const [isNight, setIsNight] = useState(checkIsNight)
   const onPetClickRef         = useRef(onPetClick)
@@ -147,6 +148,9 @@ export default function Pet({
   // ── Grass patches ─────────────────────────────────────────────
   const { grassPatches, grassPatchesRef, hideGrassPatch, restoreGrassPatch }
     = useGrassPatches(unlockedAreas)
+
+  // ── Ref to freeze movement during Bubby grooming anim ────────
+  const catAnimFreezeRef = useRef(false)
 
   // ── Hare/Bubby movement ───────────────────────────────────────
   const greetArrivedRef = useRef(null)
@@ -165,6 +169,7 @@ export default function Pet({
     greetTrigger:    petType === 'bubby' ? greetTrigger : 0,
     onGreetArrived:  () => { if (greetArrivedRef.current) greetArrivedRef.current() },
     wellYOffset:     petType === 'bubby' ? -32 : 0,
+    catAnimFreezeRef,
     isLevelingUp,
     isPaused,
     grassPatchesRef,
@@ -210,8 +215,10 @@ export default function Pet({
         if (cur !== 'idle' && cur !== 'resting') { schedule(); return }
         const pick = Math.random() < 0.6 ? 'lick' : 'yawn'
         const dur  = pick === 'lick' ? 1540 : 1400  // 11 steps×140ms vs 10 steps×140ms
+        if (pick === 'lick') catAnimFreezeRef.current = true
         setCatSpecialAnim(pick)
         catInnerTimerRef.current = setTimeout(() => {
+          catAnimFreezeRef.current = false
           setCatSpecialAnim(null)
           // Only reschedule if still in an idle/resting state
           const curAfter = eatStateRefLocal.current
@@ -238,16 +245,27 @@ export default function Pet({
     return () => clearTimeout(t)
   }, [petType, petHunger, eatState])
 
-  // Stand up after resting
+  // Stand up after resting (requires 'stretch' unlock); Happy Hop after leveling (requires 'happy_hop')
   useEffect(() => {
     if (petType !== 'bubby') return
     if (eatState === 'idle' && prevEatStateRef.current === 'resting') {
-      setCatSpecialAnim('stand')
-      const t = setTimeout(() => setCatSpecialAnim(null), 1120)  // 8 steps × 140ms
-      return () => clearTimeout(t)
+      if (unlockedAnimations.includes('stretch')) {
+        setCatSpecialAnim('stand')
+        const t = setTimeout(() => setCatSpecialAnim(null), 1120)  // 8 steps × 140ms
+        prevEatStateRef.current = eatState
+        return () => clearTimeout(t)
+      }
+    }
+    if (eatState === 'idle' && prevEatStateRef.current === 'leveling') {
+      if (unlockedAnimations.includes('happy_hop')) {
+        setCatSpecialAnim('jump')
+        const t = setTimeout(() => setCatSpecialAnim(null), 1120)  // 8 steps × 140ms
+        prevEatStateRef.current = eatState
+        return () => clearTimeout(t)
+      }
     }
     prevEatStateRef.current = eatState
-  }, [petType, eatState])
+  }, [petType, eatState, unlockedAnimations])
 
   // Wire up greet arrival → play lick
   useEffect(() => {
@@ -331,11 +349,16 @@ export default function Pet({
     // Special animations only play when Bubby is completely still (not moving)
     const canPlaySpecial = !isRunning && !isEating && !isDrinking
 
-    if (eatState === 'celebrate_ball') {
-      // Ball animation while stopped at celebrate waypoint
+    if (eatState === 'celebrate_ball' && unlockedAnimations.includes('ball_roll')) {
+      // Ball animation while stopped at celebrate waypoint (requires 'ball_roll' unlock)
       bubbySprite    = catBall
       bubbyCssClass += ' bubby-ball'
       bubbyBgSize    = `${BUBBY_SZ.ball.w}px ${BUBBY_SZ.ball.h}px`
+      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+    } else if (canPlaySpecial && catSpecialAnim === 'jump') {
+      bubbySprite    = catJump
+      bubbyCssClass += ' bubby-jump'
+      bubbyBgSize    = `${BUBBY_SZ.jump.w}px ${BUBBY_SZ.jump.h}px`
       bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
     } else if (canPlaySpecial && catSpecialAnim === 'stand') {
       bubbySprite    = catStand

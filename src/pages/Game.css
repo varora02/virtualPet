@@ -836,7 +836,7 @@
 }
 
 .shop-modal {
-  background: #fff;
+  background: #fffdf7;
   border-radius: 22px;
   width: 100%;
   max-width: 480px;
@@ -853,8 +853,8 @@
   align-items: center;
   gap: 10px;
   padding: 18px 22px 14px;
-  border-bottom: 1.5px solid #f0f0f0;
-  background: linear-gradient(135deg, #f9f7ff 0%, #fff 100%);
+  border-bottom: 1.5px solid #f0e8cc;
+  background: linear-gradient(135deg, #fffbf0 0%, #fff8e8 100%);
   flex-shrink: 0;
 }
 
@@ -893,28 +893,34 @@
 }
 .shop-modal-close:hover { background: #e4deff; color: #5a4b9e; }
 
-/* Tabs */
+/* Tabs — pill style */
 .shop-modal-tabs {
   display: flex;
-  padding: 0 18px;
-  border-bottom: 2px solid #f0f0f0;
+  gap: 8px;
+  padding: 12px 18px;
+  border-bottom: 1.5px solid #f5efe0;
   flex-shrink: 0;
+  background: #fffdf7;
 }
 
 .shop-tab-btn {
-  padding: 11px 22px;
-  border: none;
+  padding: 8px 18px;
+  border: 1.5px solid #e8ddc8;
+  border-radius: 20px;
   background: transparent;
-  font-size: 0.88rem;
+  font-size: 0.85rem;
   font-weight: 700;
-  color: #b0a8d4;
+  color: #a08060;
   cursor: pointer;
-  border-bottom: 2.5px solid transparent;
-  margin-bottom: -2px;
-  transition: color 0.18s, border-color 0.18s;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
 }
-.shop-tab-btn:hover { color: #6c5ce7; }
-.shop-tab-btn.active { color: #6c5ce7; border-bottom-color: #6c5ce7; }
+.shop-tab-btn:hover { background: #fdf0d8; color: #7a5c2e; border-color: #d4b07a; }
+.shop-tab-btn.active {
+  background: linear-gradient(135deg, #f5c97a, #e8a84a);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(232, 168, 74, 0.35);
+}
 
 /* Scrollable body */
 .shop-modal-body {
@@ -937,28 +943,30 @@
 }
 
 .shop-card {
-  background: #fafafa;
-  border-radius: 18px;
+  background: #fdf6e3;
+  border-radius: 16px;
   padding: 18px 14px 14px;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 7px;
-  border: 2px solid #eee;
+  border: 2px solid #e8ddc0;
+  box-shadow: 0 4px 16px rgba(180, 140, 80, 0.10);
   transition: border-color 0.2s, transform 0.15s, box-shadow 0.15s;
 }
-.shop-card:not(.owned):not(.poor):hover {
-  border-color: #c9b8ff;
-  transform: translateY(-3px);
-  box-shadow: 0 8px 24px rgba(108, 92, 231, 0.13);
+.shop-card:not(.owned):not(.poor):not(.locked-level):hover {
+  border-color: #d4a84a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 28px rgba(180, 140, 80, 0.18);
 }
-.shop-card.owned { background: #f4fff8; border-color: #a8e6be; }
-.shop-card.poor  { opacity: 0.6; }
+.shop-card.owned        { background: #f0fdf4; border-color: #a8d8b8; }
+.shop-card.poor         { opacity: 0.6; }
+.shop-card.locked-level { opacity: 0.55; }
 
 .shop-card-art {
   width: 76px;
   height: 76px;
-  background: rgba(108, 92, 231, 0.08);
+  background: rgba(240, 200, 100, 0.15);
   border-radius: 16px;
   display: flex;
   align-items: center;
@@ -966,8 +974,8 @@
   margin-bottom: 2px;
   transition: background 0.2s;
 }
-.shop-card:not(.owned):not(.poor):hover .shop-card-art { background: rgba(108, 92, 231, 0.14); }
-.shop-card.owned .shop-card-art { background: rgba(39, 174, 96, 0.1); }
+.shop-card:not(.owned):not(.poor):not(.locked-level):hover .shop-card-art { background: rgba(240, 200, 100, 0.28); }
+.shop-card.owned .shop-card-art { background: rgba(39, 174, 96, 0.12); }
 
 .shop-card-img  { width: 58px; height: 58px; object-fit: contain; }
 .shop-card-icon { font-size: 2.5rem; }
@@ -1000,7 +1008,7 @@
 }
 .shop-card-btn:hover { transform: translateY(-1px); }
 .shop-card-btn.can-buy {
-  background: linear-gradient(135deg, #7c6ce8, #9b8ef4);
+  background: linear-gradient(135deg, #e8a84a, #d48a28);
   color: white;
 }
 .shop-card-btn.owned-state {

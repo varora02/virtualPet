@@ -112,6 +112,7 @@ export function useHareMovement({
   greetTrigger       = 0,        // Bubby: run to center of current area then lick
   onGreetArrived     = null,     // called when Bubby reaches the greet target
   wellYOffset        = 0,        // extra y offset for water target (negative = higher up the well)
+  catAnimFreezeRef   = null,     // ref set to true by Pet.jsx during grooming/special anims
   isLevelingUp,
   isPaused,
   grassPatchesRef,
@@ -453,6 +454,7 @@ export function useHareMovement({
       }
 
       // ── Frozen states ─────────────────────────────────────────
+      if (catAnimFreezeRef?.current) return
       if (state === 'eating' || state === 'drinking' || state === 'resting' || state === 'leveling' ||
           state === 'study'  || state === 'study_pause' || state === 'celebrate_ball') return
 

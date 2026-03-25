@@ -67,6 +67,7 @@ const DEFAULT_PET = {
   lastSeenGF: null,
   todayStudySessions: 0,
   lastStudyDate: null,
+  unlockedAnimations: [],
 }
 
 const SHOP_ITEMS = [
@@ -77,6 +78,12 @@ const SHOP_ITEMS = [
 // Visual grouping for the shop UI — area unlocks live in ProgressionRoadmap, not here
 const SHOP_SECTIONS = [
   { id: 'toys',  label: '🧸 Toys', itemIds: ['basketball', 'soccerball'] },
+]
+
+const ANIMATION_ITEMS = [
+  { id: 'ball_roll',  name: 'Ball Roll',   icon: '🎱', cost: 1, requiredLevel: 3, desc: 'Bubby rolls a ball during play!' },
+  { id: 'stretch',    name: 'Stretch',     icon: '🤸', cost: 1, requiredLevel: 5, desc: 'Bubby does a full body stretch!' },
+  { id: 'happy_hop',  name: 'Happy Hop',   icon: '🌸', cost: 1, requiredLevel: 7, desc: 'Bubby hops with joy!' },
 ]
 
 // Inject real SVG URLs after import (can't do this at module level before imports)
@@ -562,6 +569,28 @@ function Game({ user }) {
     }
   }
 
+  const buyAnimation = async (animId) => {
+    const anim = ANIMATION_ITEMS.find(a => a.id === animId)
+    if (!anim) return
+    if ((pet.coins || 0) < anim.cost) return
+    if (currentLevel < anim.requiredLevel) return
+    if ((pet.unlockedAnimations || []).includes(animId)) return
+    const petRef = doc(db, 'pets', 'shared-pet')
+    try {
+      await updateDoc(petRef, {
+        coins: (pet.coins || 0) - anim.cost,
+        unlockedAnimations: arrayUnion(animId),
+        activities: arrayUnion({
+          text: `${userName} unlocked ${anim.name} for Bubby! 🎉`,
+          user: userName,
+          timestamp: new Date().toISOString()
+        })
+      })
+    } catch (err) {
+      console.error('Error buying animation:', err)
+    }
+  }
+
   // ── Tier progression ──────────────────────────────────────────
   // Area 0 (BL) is always tier 1 from the start. Progression:
   //   Upgrade area 0 T1→T2→T3, then unlock area 1 at T1, upgrade T2→T3, unlock area 2, etc.
@@ -699,7 +728,6 @@ function Game({ user }) {
       <header className="game-header">
         <h1 className="game-title">Virtual Pet v1</h1>
         <div className="header-right">
-          <span className="level-badge" title={`${expInLevel}/${EXP_PER_LEVEL} exp`}>⭐ Lv.{currentLevel}</span>
           <span className="coin-badge">🪙 {pet.coins || 0}</span>
           <span className="streak-badge" title="Login streak">🔥 {pet.loginStreak || 0}</span>
           <span className="user-badge">
@@ -780,6 +808,7 @@ function Game({ user }) {
           petHunger={pet.hunger}
           greetTrigger={greetTrigger}
           thoughtBubble={thoughtBubble}
+          unlockedAnimations={pet.unlockedAnimations || []}
         />
       </div>
 
@@ -935,6 +964,8 @@ function Game({ user }) {
           onBuy={handleProgressionPurchase}
           pathUnlocked={pet.pathUnlocked === true}
           onBuyItem={buyItem}
+          onBuyAnimation={buyAnimation}
+          currentLevel={currentLevel}
           onClose={() => {
             setShowShop(false)
             // Trigger upgrade flash now that the shop is closed
@@ -1031,7 +1062,7 @@ const AREA_LABELS = {
 }
 
 // ── Shop Modal ────────────────────────────────────────────────────────────────
-function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUnlockPath, onBuy, pathUnlocked, onBuyItem, onClose }) {
+function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUnlockPath, onBuy, pathUnlocked, onBuyItem, onBuyAnimation, currentLevel, onClose }) {
   const [activeTab, setActiveTab] = useState('items')
   const next = getNextUpgrade()
   // Use the stricter canUnlockPath (requires both local tier state + Firestore confirmation)
@@ -1054,6 +1085,10 @@ function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUn
             className={`shop-tab-btn${activeTab === 'items' ? ' active' : ''}`}
             onClick={() => setActiveTab('items')}
           >🧸 Items</button>
+          <button
+            className={`shop-tab-btn${activeTab === 'animations' ? ' active' : ''}`}
+            onClick={() => setActiveTab('animations')}
+          >✨ Animations</button>
           <button
             className={`shop-tab-btn${activeTab === 'world' ? ' active' : ''}`}
             onClick={() => setActiveTab('world')}
@@ -1096,6 +1131,43 @@ function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUn
                 })}
               </div>
               <p className="shop-earn-tip">💡 Complete sessions, feed Rompy, and play to earn 🪙</p>
+            </div>
+          )}
+
+          {/* ── Animations tab ───────────────────────────── */}
+          {activeTab === 'animations' && (
+            <div className="shop-items-tab">
+              <div className="shop-card-grid">
+                {ANIMATION_ITEMS.map(anim => {
+                  const owned      = (pet.unlockedAnimations || []).includes(anim.id)
+                  const levelOk    = currentLevel >= anim.requiredLevel
+                  const canAfford  = coins >= anim.cost
+                  const canBuy     = levelOk && canAfford && !owned
+                  const btnClass   = owned ? 'owned-state' : !levelOk ? 'cant-afford' : canAfford ? 'can-buy' : 'cant-afford'
+                  return (
+                    <div
+                      key={anim.id}
+                      className={`shop-card${owned ? ' owned' : ''}${!levelOk && !owned ? ' locked-level' : ''}${!canAfford && levelOk && !owned ? ' poor' : ''}`}
+                    >
+                      <div className="shop-card-art">
+                        <span className="shop-card-icon">{levelOk ? anim.icon : '🔒'}</span>
+                      </div>
+                      <span className="shop-card-name">{anim.name}</span>
+                      <span className="shop-card-desc">
+                        {levelOk ? anim.desc : `Requires level ${anim.requiredLevel}`}
+                      </span>
+                      <button
+                        className={`shop-card-btn ${btnClass}`}
+                        onClick={() => canBuy && onBuyAnimation(anim.id)}
+                        disabled={!canBuy}
+                      >
+                        {owned ? '✓ Unlocked' : !levelOk ? `🔒 Lv.${anim.requiredLevel}` : `🪙 ${anim.cost}  Unlock`}
+                      </button>
+                    </div>
+                  )
+                })}
+              </div>
+              <p className="shop-earn-tip">💡 Level up Bubby to unlock new animations!</p>
             </div>
           )}
 

@@ -132,21 +132,26 @@ export function useBackgroundMusic(isNight = false) {
 
   // ── Public: toggle music on/off ───────────────────────────────
   const toggleMusic = useCallback(() => {
-    setMusicMuted(m => {
-      const next = !m
-      musicMutedRef.current = next
-      const active = isNight ? nightRef.current : dayRef.current
-      if (!active) return next
-      if (next) {
-        fadeTo(active, 0, () => active.pause())
-      } else {
-        // Always start when unmuting — works even if the track has never
-        // played (startedRef.current === false).
-        startedRef.current = true
-        active.play().then(() => fadeTo(active, MUSIC_VOLUME)).catch(() => {})
-      }
-      return next
-    })
+    // IMPORTANT: active.play() MUST be called here, synchronously inside the
+    // click handler, so the browser recognises it as a user-gesture call.
+    // Calling play() inside setMusicMuted(updater) breaks this because React
+    // runs updaters outside the gesture context, causing a NotAllowedError.
+    const next = !musicMutedRef.current
+    musicMutedRef.current = next
+    setMusicMuted(next)
+
+    const active = isNight ? nightRef.current : dayRef.current
+    if (!active) return
+    if (next) {
+      // Muting — fade out then pause
+      fadeTo(active, 0, () => active.pause())
+    } else {
+      // Unmuting — start playback unconditionally (handles first-ever press)
+      startedRef.current = true
+      active.play()
+        .then(() => fadeTo(active, MUSIC_VOLUME))
+        .catch(err => console.warn('[useBackgroundMusic] play blocked:', err))
+    }
   }, [isNight])
 
   return { musicMuted, toggleMusic }

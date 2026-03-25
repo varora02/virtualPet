@@ -196,6 +196,14 @@ export function useSoundManager() {
     })
   }, [])
 
+  // ── Public: stop(id) — pause and rewind a sound ──────────────
+  const stop = useCallback((id) => {
+    const audio = audioPoolRef.current[id]
+    if (!audio) return
+    audio.pause()
+    audio.currentTime = 0
+  }, [])
+
   // ── Public: toggleMute() ──────────────────────────────────────
   const toggleMute = useCallback(() => {
     setMuted(m => {
@@ -204,5 +212,5 @@ export function useSoundManager() {
     })
   }, [])
 
-  return { play, setVolume, volume, muted, toggleMute }
+  return { play, stop, setVolume, volume, muted, toggleMute }
 }

@@ -141,7 +141,7 @@ function Game({ user }) {
   const pendingFlashAreaRef = useRef(null)
 
   // ── Sound manager + background music ─────────────────────────
-  const { play } = useSoundManager()
+  const { play, stop } = useSoundManager()
   const [isNight, setIsNight] = useState(() => {
     const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours()
     return h >= 20 || h < 7
@@ -453,7 +453,10 @@ function Game({ user }) {
     play('celebrate')
     play('coin')
     if (didLevelUp) play('levelup')
-    if (activePet === 'bubby') setTimeout(() => play('cat_purr'), 800)
+    if (activePet === 'bubby') {
+      setTimeout(() => play('cat_purr'), 800)   // start purr 0.8s after play
+      setTimeout(() => stop('cat_purr'), 3800)  // stop after ~3s of purring
+    }
     setCelebrateTrigger(n => n + 1)   // trigger run→jump animation for Bubby / victory lap for Rompy
 
     if (didLevelUp) {

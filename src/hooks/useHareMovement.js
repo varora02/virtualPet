@@ -138,6 +138,11 @@ export function useHareMovement({
   const targetIdxRef       = useRef(-1)
   const targetPosRef       = useRef({ x: 0, y: 0 })
   const wanderTargetRef    = useRef(randomPointInArea(0))
+  // Counts consecutive ticks where Bubby made no progress toward her wander
+  // target. After ~1 s (20 ticks × 50 ms) without closing the gap, a fresh
+  // target is forced so she turns away from the obstacle automatically.
+  const wanderStuckRef    = useRef(0)
+  const wanderPrevDistRef = useRef(Infinity)  // dist to target on the previous tick
   const unlockedAreasRef   = useRef(unlockedAreas)
   const arrivedAtTreeRef   = useRef(false)
   const restTargetRef          = useRef(null)
@@ -589,6 +594,8 @@ export function useHareMovement({
       const dist = Math.hypot(dx, dy)
       if (dist < WALK_SPEED + 1) {
         wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+        wanderStuckRef.current  = 0
+        wanderPrevDistRef.current = Infinity
         return
       }
       const nx = pos.x + (dx / dist) * WALK_SPEED
@@ -597,6 +604,24 @@ export function useHareMovement({
       // by a prop (all three slide attempts fail). We don't fall back to
       // clampToUnlocked so Bubby changes direction instead of walking through props.
       const clamped = clampToPassable(nx, ny, pos)
+
+      // ── Progress timeout ───────────────────────────────────────
+      // Compare this tick's distance to last tick's. If Bubby isn't getting
+      // closer (sliding along a wall or grinding face-first into it), count
+      // stuck frames. After ~1 s with no progress, pick a fresh target so she
+      // turns away from the obstacle instead of pressing against it forever.
+      if (dist < wanderPrevDistRef.current - 0.5) {
+        wanderStuckRef.current = 0           // making progress — reset counter
+      } else {
+        wanderStuckRef.current += 1
+        if (wanderStuckRef.current >= 20) {  // ~1 s at 50 ms/tick
+          wanderTargetRef.current   = randomWanderTarget(unlockedAreasRef.current)
+          wanderStuckRef.current    = 0
+          wanderPrevDistRef.current = Infinity
+        }
+      }
+      wanderPrevDistRef.current = dist
+
       updateDirection(dx, dy)
       petPosRef.current = clamped; setPetPos(clamped)
     }, 50)

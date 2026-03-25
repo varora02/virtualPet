@@ -381,7 +381,9 @@ export default function Pet({
   }
 
   // ── Bubby sprite computation ───────────────────────────────────
-  const bubbyZ = Z_BASE + Math.round(petPos.y + BUBBY_PX)
+  // While drinking, push Bubby in front of the well regardless of y position.
+  // well_0 displayH = 100, so +120 guarantees Bubby layers above it.
+  const bubbyZ = Z_BASE + Math.round(petPos.y + BUBBY_PX) + (eatState === 'drinking' ? 120 : 0)
   let bubbySprite    = null
   let bubbyCssClass  = 'bubby-cat'
   let bubbyBgSize    = ''

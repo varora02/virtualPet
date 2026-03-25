@@ -26,7 +26,7 @@ const nightTrackUrl = null   // no night track yet
 
 const FADE_STEP_MS  = 50     // ms between each fade tick
 const FADE_DURATION = 1500   // total crossfade duration (ms)
-const MUSIC_VOLUME  = 0.3    // master volume for music (0–1)
+const MUSIC_VOLUME  = 0.55   // master volume for music (0–1)
 
 export function useBackgroundMusic(isNight = false) {
   const dayRef    = useRef(null)

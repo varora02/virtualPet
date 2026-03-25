@@ -76,23 +76,23 @@ const SOUND_MAP = {
 
 // Default volume for each sound (0–1). Override here or via setVolume().
 const DEFAULT_VOLUME = {
-  // Game actions
-  eat:       0.6,
-  drink:     0.55,
-  coin:      0.5,
-  levelup:   0.75,
-  celebrate: 0.65,
-  thought:   0.35,
-  rest:      0.45,
+  // Game actions (−20% from original)
+  eat:       0.48,
+  drink:     0.44,
+  coin:      0.40,
+  levelup:   0.60,
+  celebrate: 0.52,
+  thought:   0.28,
+  rest:      0.36,
   // UI interactions
-  click:     0.4,
-  toggle:    0.4,
-  open:      0.45,
-  close:     0.4,
-  error:     0.5,
+  click:     0.32,
+  toggle:    0.32,
+  open:      0.36,
+  close:     0.32,
+  error:     0.40,
   // Pet & ambient
-  meow:      0.6,
-  campfire:  0.25,
+  meow:      0.48,
+  campfire:  0.25,   // proximity audio — keep relatively quiet
 }
 
 // ─────────────────────────────────────────────────────────────

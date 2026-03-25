@@ -18,12 +18,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 
-// Uncomment once you have the files:
-// import dayTrackUrl   from '../assets/sounds/music/ambient_day.ogg'
-// import nightTrackUrl from '../assets/sounds/music/ambient_night.ogg'
+import dayTrackUrl from '../assets/sounds/music/ambient_day.mp3'
+// Night track: add ambient_night.mp3 to the same folder and uncomment:
+// import nightTrackUrl from '../assets/sounds/music/ambient_night.mp3'
 
-const dayTrackUrl   = null   // swap for dayTrackUrl import above
-const nightTrackUrl = null   // swap for nightTrackUrl import above
+const nightTrackUrl = null   // no night track yet
 
 const FADE_STEP_MS  = 50     // ms between each fade tick
 const FADE_DURATION = 1500   // total crossfade duration (ms)

@@ -9,7 +9,8 @@ import { EXP_PER_LEVEL, PLAY_EXP_REWARD, ABILITIES } from '../levelConfig'
 import basketballUrl  from '../assets/svgs/basketball.svg'
 import soccerballUrl  from '../assets/svgs/soccerball.svg'
 import { WORLD_PROPS } from '../worldData'
-import { useSoundManager } from '../hooks/useSoundManager'
+import { useSoundManager }     from '../hooks/useSoundManager'
+import { useBackgroundMusic }  from '../hooks/useBackgroundMusic'
 import './Game.css'
 
 const STORAGE_KEY = 'virtualpet_progression'
@@ -139,8 +140,20 @@ function Game({ user }) {
   // then trigger setUpgradedArea when the modal's onClose fires.
   const pendingFlashAreaRef = useRef(null)
 
-  // ── Sound manager ─────────────────────────────────────────────
+  // ── Sound manager + background music ─────────────────────────
   const { play } = useSoundManager()
+  const [isNight, setIsNight] = useState(() => {
+    const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours()
+    return h >= 20 || h < 7
+  })
+  useEffect(() => {
+    const id = setInterval(() => {
+      const h = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' })).getHours()
+      setIsNight(h >= 20 || h < 7)
+    }, 60000)
+    return () => clearInterval(id)
+  }, [])
+  const { musicMuted, toggleMusic } = useBackgroundMusic(isNight)
 
   const hasCheckedDaily                 = useRef(false)
   const hasCheckedNotif                 = useRef(false)
@@ -768,6 +781,11 @@ function Game({ user }) {
           >
             {activePet === 'rompy' ? '🐱 Play as Bubby' : '🐰 Play as Rompy'}
           </button>
+          <button
+            className="music-toggle-btn"
+            onClick={toggleMusic}
+            title={musicMuted ? 'Unmute music' : 'Mute music'}
+          >{musicMuted ? '🔇' : '🎵'}</button>
           <button className="reset-btn" onClick={() => setShowResetConfirm(true)} title="Reset game state">↺ Reset</button>
           <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>

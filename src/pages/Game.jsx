@@ -12,6 +12,30 @@ import { WORLD_PROPS } from '../worldData'
 import './Game.css'
 
 const STORAGE_KEY = 'virtualpet_progression'
+
+// ── PST date helpers ──────────────────────────────────────────
+function getPSTDate() {
+  return new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }))
+}
+function getPSTISODate() {
+  const d = getPSTDate()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+function getWeekDates() {
+  const pst = getPSTDate()
+  const dow = pst.getDay() // 0=Sun
+  const monday = new Date(pst)
+  monday.setDate(pst.getDate() - ((dow + 6) % 7))
+  monday.setHours(0, 0, 0, 0)
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday)
+    d.setDate(monday.getDate() + i)
+    return {
+      iso: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`,
+      label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][i],
+    }
+  })
+}
 // Unlock order: BL(0) → BM(1) → BR(2) → ML(3) → MM(4) → MR(5) → TL(6) → TM(7) → TR(8)
 // Area 0 is always pre-unlocked at tier 1; upgrades + new areas proceed from there.
 const PROGRESSION_ORDER = [0, 1, 2, 3, 4, 5, 6, 7, 8]
@@ -110,6 +134,13 @@ function Game({ user }) {
   const hasCheckedNotif                 = useRef(false)
   const petRef                          = useRef(pet)
   useEffect(() => { petRef.current = pet }, [pet])
+
+  // ── Workout check-in state ────────────────────────────────────
+  const [workoutData,       setWorkoutData]       = useState({ varun: {}, leena: {} })
+  const [showWorkoutPopup,  setShowWorkoutPopup]  = useState(false)
+  const workoutDataRef      = useRef({ varun: {}, leena: {} })
+  const hasShownWorkoutRef  = useRef(false)
+  useEffect(() => { workoutDataRef.current = workoutData }, [workoutData])
 
   // Persist active pet choice
   useEffect(() => {
@@ -221,6 +252,45 @@ function Game({ user }) {
     return () => unsubscribe()
   }, [])
 
+  // ── Workout Firestore listener ────────────────────────────────
+  useEffect(() => {
+    const workoutsRef = doc(db, 'workouts', 'shared-workouts')
+    const unsub = onSnapshot(workoutsRef, (snap) => {
+      const data = snap.exists()
+        ? { varun: snap.data().varun || {}, leena: snap.data().leena || {} }
+        : { varun: {}, leena: {} }
+      setWorkoutData(data)
+      workoutDataRef.current = data
+      // Show popup on first load if past 6pm PST and today not yet logged
+      maybeShowWorkoutPopup(data)
+    })
+    return () => unsub()
+  }, [])
+
+  function maybeShowWorkoutPopup(data) {
+    if (hasShownWorkoutRef.current) return
+    const pst = getPSTDate()
+    if (pst.getHours() < 18) return
+    const todayISO = getPSTISODate()
+    const userKey = userName === 'Varun' ? 'varun' : 'leena'
+    if ((data[userKey] || {})[todayISO]) return   // already answered
+    hasShownWorkoutRef.current = true
+    setShowWorkoutPopup(true)
+  }
+
+  const handleWorkoutResponse = async (answer) => {
+    const todayISO = getPSTISODate()
+    const userKey = userName === 'Varun' ? 'varun' : 'leena'
+    const workoutsRef = doc(db, 'workouts', 'shared-workouts')
+    try {
+      await updateDoc(workoutsRef, { [`${userKey}.${todayISO}`]: answer })
+    } catch {
+      // Document doesn't exist yet — create it
+      await setDoc(workoutsRef, { varun: {}, leena: {}, [userKey]: { [todayISO]: answer } })
+    }
+    setShowWorkoutPopup(false)
+  }
+
   // ── Tab visibility → "while you were away" banner + Bubby greet ─
   const activePetRef = useRef(activePet)
   useEffect(() => { activePetRef.current = activePet }, [activePet])
@@ -233,6 +303,8 @@ function Game({ user }) {
         if (activePetRef.current === 'bubby') {
           setGreetTrigger(n => n + 1)
         }
+        // Workout popup check (uses refs so no stale closure issues)
+        maybeShowWorkoutPopup(workoutDataRef.current)
       }
     }
     document.addEventListener('visibilitychange', handleVisibility)
@@ -570,9 +642,11 @@ function Game({ user }) {
   }
 
   const resetGame = async () => {
-    const petRef = doc(db, 'pets', 'shared-pet')
+    const petDocRef     = doc(db, 'pets',     'shared-pet')
+    const workoutsRef   = doc(db, 'workouts', 'shared-workouts')
     try {
-      await setDoc(petRef, { ...DEFAULT_PET, createdAt: serverTimestamp() })
+      await setDoc(petDocRef,   { ...DEFAULT_PET, createdAt: serverTimestamp() })
+      await setDoc(workoutsRef, { varun: {}, leena: {} })
       // Reset local tier state and wipe persisted progression from localStorage
       setAreaTiers({ 0: 1 })
       localStorage.removeItem(STORAGE_KEY)
@@ -580,6 +654,7 @@ function Game({ user }) {
       setGhostBudActive(false)
       setIsLevelingUp(false)
       studyStartedRef.current = false
+      hasShownWorkoutRef.current = false   // allow popup to re-appear after reset
       setPetKey(k => k + 1)   // force Pet remount → hare respawns in BL area
     } catch (err) {
       console.error('Reset error:', err)
@@ -691,7 +766,7 @@ function Game({ user }) {
           isLevelingUp={isLevelingUp}
           onLevelUpComplete={handleLevelUpComplete}
           onPetClick={handlePetClick}
-          isPaused={showLevelPopup}
+          isPaused={showLevelPopup || showWorkoutPopup}
           ghostBudActive={ghostBudActive}
           showLevelPopup={showLevelPopup}
           onCloseLevelPopup={closeLevelPopup}
@@ -793,6 +868,8 @@ function Game({ user }) {
             todaySessions={todaySessions}
           />
 
+          <WorkoutGrid workoutData={workoutData} />
+
           <div className="activity-section">
             <div className="activity-header-row">
               <button className="activity-toggle-btn" onClick={() => setShowActivity(s => !s)}>
@@ -827,6 +904,25 @@ function Game({ user }) {
         </div>
       )}
 
+      {/* ── Workout Check-in Popup (from Bubby) ───────────────── */}
+      {showWorkoutPopup && (
+        <div className="workout-overlay">
+          <div className="workout-modal">
+            <div className="workout-bubby">🐱</div>
+            <h3 className="workout-title">Bubby wants to know…</h3>
+            <p className="workout-body">Did you work out today?</p>
+            <div className="workout-actions">
+              <button className="workout-btn workout-yes" onClick={() => handleWorkoutResponse('yes')}>
+                Yes! 💪
+              </button>
+              <button className="workout-btn workout-no" onClick={() => handleWorkoutResponse('no')}>
+                Not today 😔
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Shop Modal ─────────────────────────────────────────── */}
       {showShop && (
         <ShopModal
@@ -850,6 +946,51 @@ function Game({ user }) {
           }}
         />
       )}
+    </div>
+  )
+}
+
+// ── Workout weekly grid ───────────────────────────────────────────────────────
+function WorkoutGrid({ workoutData }) {
+  const weekDates = getWeekDates()
+
+  const renderCell = (log, iso) => {
+    const val = (log || {})[iso]
+    if (val === 'yes') return '✓'
+    if (val === 'no')  return '✗'
+    return ''
+  }
+
+  const cellClass = (log, iso) => {
+    const val = (log || {})[iso]
+    return `workout-cell ${val === 'yes' ? 'yes' : val === 'no' ? 'no' : 'empty'}`
+  }
+
+  return (
+    <div className="workout-grid-section">
+      <div className="workout-grid-title">💪 Weekly Workouts</div>
+      <table className="workout-grid-table">
+        <thead>
+          <tr>
+            <th className="workout-grid-name-col"></th>
+            {weekDates.map(({ label }) => (
+              <th key={label} className="workout-grid-day-hdr">{label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[{ key: 'varun', label: 'Varun' }, { key: 'leena', label: 'Leena' }].map(({ key, label }) => (
+            <tr key={key}>
+              <td className="workout-grid-name-col">{label}</td>
+              {weekDates.map(({ iso }) => (
+                <td key={iso} className={cellClass(workoutData[key], iso)}>
+                  {renderCell(workoutData[key], iso)}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   )
 }

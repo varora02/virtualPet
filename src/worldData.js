@@ -607,11 +607,10 @@ export const WORLD_PROPS = [
   // prop_campfire2.png: 6 frames × 32×32 px → displayed at 3× (96×96)
   // animClass 'prop-campfire' drives the steps(6) CSS animation (Pet.css).
   // glowCssClass 'campfire-glow' enables the warm-flickering light variant.
-  // collisionR 36 (was 52) — still blocks the flame area without trapping the
-  // pet when it wanders near the edge of the campfire zone.
+  // collisionR 32 — tight around the flame, pet can pass close without getting stuck.
   { id: 'campfire_0', type: 'campfire',
     areaId: 4, tier: 1, ...pos(4, 0.393, 0.313),
-    displayW: 96, displayH: 96, collisionR: 36,
+    displayW: 96, displayH: 96, collisionR: 32,
     animated: true, animClass: 'prop-campfire',
     emitsLight: true, glowRadius: 150, glowOffsetY: 0.55, glowCssClass: 'campfire-glow' },
 

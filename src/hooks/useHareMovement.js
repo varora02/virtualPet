@@ -591,13 +591,10 @@ export function useHareMovement({
       }
       const nx = pos.x + (dx / dist) * WALK_SPEED
       const ny = pos.y + (dy / dist) * WALK_SPEED
-      let clamped = clampToPassable(nx, ny, pos)
-      // Stuck escape: if clampToPassable couldn't move us (e.g. trapped inside a
-      // tree's collision zone), fall back to unlocked movement so the pet can
-      // walk out of the exclusion zone rather than freezing permanently.
-      if (clamped.x === pos.x && clamped.y === pos.y) {
-        clamped = clampToUnlocked(nx, ny, pos)
-      }
+      // clampToPassable already picks a new random wander target when blocked
+      // by a prop (all three slide attempts fail). We don't fall back to
+      // clampToUnlocked so Bubby changes direction instead of walking through props.
+      const clamped = clampToPassable(nx, ny, pos)
       updateDirection(dx, dy)
       petPosRef.current = clamped; setPetPos(clamped)
     }, 50)

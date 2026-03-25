@@ -226,6 +226,120 @@
   margin-left: 4px;
 }
 
+/* ── Workout check-in popup ─────────── */
+.workout-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.52);
+  z-index: 9100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fade-in 0.25s ease;
+}
+
+.workout-modal {
+  background: #fff;
+  border-radius: 22px;
+  padding: 32px 36px;
+  max-width: 360px;
+  width: 88%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  animation: pop-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.workout-bubby {
+  font-size: 3.4rem;
+  margin-bottom: 10px;
+}
+
+.workout-title {
+  margin: 0 0 8px;
+  font-size: 1.22rem;
+  font-weight: 800;
+  color: #3D2E6B;
+}
+
+.workout-body {
+  font-size: 0.92rem;
+  color: #666;
+  margin: 0 0 22px;
+  line-height: 1.5;
+}
+
+.workout-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.workout-btn {
+  padding: 12px 24px;
+  border-radius: 12px;
+  border: none;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.workout-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.15); }
+
+.workout-yes { background: linear-gradient(135deg, #2ecc71, #27ae60); color: white; }
+.workout-no  { background: #f0f0f0; color: #666; }
+
+/* ── Workout weekly grid ─────────────── */
+.workout-grid-section {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 18px;
+  padding: 14px 16px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.10);
+}
+
+.workout-grid-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #5a4b9e;
+  margin-bottom: 10px;
+  letter-spacing: 0.02em;
+}
+
+.workout-grid-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.workout-grid-name-col {
+  text-align: left;
+  font-weight: 700;
+  color: #444;
+  padding-right: 8px;
+  white-space: nowrap;
+  width: 44px;
+}
+
+.workout-grid-day-hdr {
+  text-align: center;
+  font-weight: 700;
+  color: #888;
+  padding: 2px 4px 6px;
+  min-width: 28px;
+}
+
+.workout-cell {
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  min-width: 28px;
+}
+
+.workout-cell.yes   { color: #27ae60; }
+.workout-cell.no    { color: #e74c3c; }
+.workout-cell.empty { color: #ccc; }
+
 /* ── Level badge ────────────────────── */
 .level-badge {
   background: rgba(255, 220, 50, 0.22);

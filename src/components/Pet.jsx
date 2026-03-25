@@ -18,6 +18,8 @@
  */
 
 import { useState, useEffect, useRef } from 'react'
+import BirdSpawner from './BirdSpawner'
+import { directionOffsets, footDepthZ } from '../hooks/spriteUtils'
 import grassUrl         from '../assets/svgs/grass.svg'
 import grass2Url        from '../assets/tiles/decor_grass_2.png'
 import grass3Url        from '../assets/tiles/decor_grass_4.png'
@@ -63,7 +65,7 @@ import './Pet.css'
 import './BubbyCat.css'
 
 // ── Sprite direction row offsets (2.5× scale → 80px per row) ──
-const DIR_OFFSETS = { down: 0, up: -80, left: -160, right: -240 }
+const DIR_OFFSETS   = directionOffsets(HARE_PX)
 
 // ── Ghost bud offset from main hare (px) ──────────────────────
 const GHOST_OFFSET_X = 90
@@ -88,9 +90,9 @@ const BUBBY_SZ = {
   scratch: { w: Math.round(256 * SCRATCH_SCALE), h: Math.round(32 * SCRATCH_SCALE) }, // 640×80
 }
 // Direction rows for cat walk/run (4-dir sheets, 80px per row)
-const BUBBY_DIR_ROW = { down: 0, up: -BUBBY_PX, left: -BUBBY_PX * 2, right: -BUBBY_PX * 3 }
+const BUBBY_DIR_ROW = directionOffsets(BUBBY_PX)
 // East/West rows for eat, sit, jump (2-row sheets)
-const BUBBY_EW_ROW  = { right: 0, left: -BUBBY_PX, down: 0, up: 0 }
+const BUBBY_EW_ROW  = directionOffsets(BUBBY_PX, true)
 
 // ── Day / night helpers ────────────────────────────────────────
 function getPSTHour() {
@@ -373,7 +375,7 @@ export default function Pet({
                     : 'hare-state-walk'
 
   // Depth-sort z-index: foot of hare = y + HARE_PX
-  const hareZ = Z_BASE + Math.round(petPos.y + HARE_PX)
+  const hareZ = footDepthZ(petPos.y, HARE_PX, Z_BASE)
 
   const ghostPos = {
     x: petPos.x + GHOST_OFFSET_X,
@@ -383,7 +385,7 @@ export default function Pet({
   // ── Bubby sprite computation ───────────────────────────────────
   // While drinking, push Bubby in front of the well regardless of y position.
   // well_0 displayH = 100, so +120 guarantees Bubby layers above it.
-  const bubbyZ = Z_BASE + Math.round(petPos.y + BUBBY_PX) + (eatState === 'drinking' ? 120 : 0)
+  const bubbyZ = footDepthZ(petPos.y, BUBBY_PX, Z_BASE, eatState === 'drinking' ? 120 : 0)
   let bubbySprite    = null
   let bubbyCssClass  = 'bubby-cat'
   let bubbyBgSize    = ''
@@ -648,6 +650,9 @@ export default function Pet({
           />
         )
       })()}
+
+      {/* Ambient bird — must live here so position:absolute resolves against world-scene */}
+      <BirdSpawner worldWidth={1344} />
 
       {/* Scene edge vignette — subtle darkness around map perimeter for focus */}
       <div className="scene-vignette" aria-hidden="true" />

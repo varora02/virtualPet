@@ -35,8 +35,8 @@ const PERCH_POINTS = [
 
 const PERCH_MIN_MS  = 10_000
 const PERCH_MAX_MS  = 20_000
-const SPAWN_MIN_MS  =  8_000  // first visit comes quickly for testing; raise to 40_000 for production
-const SPAWN_MAX_MS  = 20_000  // raise to 90_000 for production
+const SPAWN_MIN_MS  = 40_000
+const SPAWN_MAX_MS  = 90_000
 
 export default function BirdSpawner({ worldWidth = 1344 }) {
   const [bird, setBird]   = useState(null)

@@ -45,33 +45,36 @@ import { WORLD_PROPS } from '../worldData.js'
 
 // ── Internal helpers ──────────────────────────────────────────
 
-/** Random point inside one area, respecting MARGIN and hare size. */
-function randomPointInArea(areaId) {
+/** Random point inside one area, respecting MARGIN and pet size. */
+function randomPointInArea(areaId, petSizePx) {
   const col       = areaId % 3
   const screenRow = 2 - Math.floor(areaId / 3)
   const ax = col * AREA_W, ay = screenRow * AREA_H
   return {
-    x: ax + MARGIN + Math.random() * (AREA_W - HARE_PX - MARGIN * 2),
-    y: ay + MARGIN + Math.random() * (AREA_H - HARE_PX - MARGIN * 2),
+    x: ax + MARGIN + Math.random() * (AREA_W - petSizePx - MARGIN * 2),
+    y: ay + MARGIN + Math.random() * (AREA_H - petSizePx - MARGIN * 2),
   }
 }
 
 /**
  * Pick a random wander target across all unlocked areas.
  * Rejects points inside any prop's collision radius (up to 60 tries).
+ *
+ * @param {number[]} unlockedAreas
+ * @param {number}   petSizePx — displayed size of the pet sprite (default: HARE_PX)
  */
-export function randomWanderTarget(unlockedAreas) {
+export function randomWanderTarget(unlockedAreas, petSizePx = HARE_PX) {
   for (let i = 0; i < 60; i++) {
     const id = unlockedAreas[Math.floor(Math.random() * unlockedAreas.length)]
-    const pt = randomPointInArea(id)
-    const cx = pt.x + HARE_PX / 2, cy = pt.y + HARE_PX / 2
+    const pt = randomPointInArea(id, petSizePx)
+    const cx = pt.x + petSizePx / 2, cy = pt.y + petSizePx / 2
     const blocked = WORLD_PROPS.some(p =>
       p.collisionR > 0 &&
-      Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + HARE_PX / 2
+      Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + petSizePx / 2
     )
     if (!blocked) return pt
   }
-  return randomPointInArea(unlockedAreas[0])  // fallback
+  return randomPointInArea(unlockedAreas[0], petSizePx)  // fallback
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -79,6 +82,7 @@ export function randomWanderTarget(unlockedAreas) {
 /**
  * @param {{
  *   pet:                object   — pet stats (hunger, thirst, energy, happiness)
+ *   petSizePx:          number   — displayed sprite size in px (default: HARE_PX = 64)
  *   unlockedAreas:      number[] — area IDs the hare can enter
  *   feedTrigger:        number   — incremented by parent to trigger a feed run
  *   restTrigger:        number   — incremented to trigger a rest pause
@@ -99,6 +103,7 @@ export function randomWanderTarget(unlockedAreas) {
  */
 export function useHareMovement({
   pet,
+  petSizePx = HARE_PX,
   unlockedAreas,
   visibleProps,        // tier-filtered props — hare only targets trees that are visible
   feedTrigger,
@@ -137,7 +142,7 @@ export function useHareMovement({
   const eatStateRef        = useRef('idle')
   const targetIdxRef       = useRef(-1)
   const targetPosRef       = useRef({ x: 0, y: 0 })
-  const wanderTargetRef    = useRef(randomPointInArea(0))
+  const wanderTargetRef    = useRef(randomPointInArea(0, petSizePx))
   // Counts consecutive ticks where Bubby made no progress toward her wander
   // target. After ~1 s (20 ticks × 50 ms) without closing the gap, a fresh
   // target is forced so she turns away from the obstacle automatically.
@@ -181,7 +186,7 @@ export function useHareMovement({
     const timer = setTimeout(() => {
       eatStateRef.current = 'idle'
       setEatState('idle')
-      wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+      wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
       if (onLevelUpCompleteRef.current) onLevelUpCompleteRef.current()
     }, 4000)
     return () => clearTimeout(timer)
@@ -215,8 +220,8 @@ export function useHareMovement({
       Math.hypot(t.x - pos.x, t.y - pos.y) < Math.hypot(best.x - pos.x, best.y - pos.y) ? t : best
     )
     restTargetRef.current = {
-      x: nearest.x + nearest.displayW / 2 - HARE_PX / 2,
-      y: nearest.y + nearest.displayH - HARE_PX + 8,
+      x: nearest.x + nearest.displayW / 2 - petSizePx / 2,
+      y: nearest.y + nearest.displayH - petSizePx + 8,
     }
   }, [isTired])
 
@@ -264,8 +269,8 @@ export function useHareMovement({
       return
     }
     targetPosRef.current = {
-      x: well.x + well.displayW / 2 - HARE_PX / 2,
-      y: well.y + well.displayH - HARE_PX + 4 + wellYOffset,
+      x: well.x + well.displayW / 2 - petSizePx / 2,
+      y: well.y + well.displayH - petSizePx + 4 + wellYOffset,
     }
     eatStateRef.current = 'going_water'
     setEatState('going_water')
@@ -292,8 +297,8 @@ export function useHareMovement({
       Math.hypot(t.x - pos.x, t.y - pos.y) < Math.hypot(best.x - pos.x, best.y - pos.y) ? t : best
     )
     targetPosRef.current = {
-      x: nearest.x + nearest.displayW / 2 - HARE_PX / 2,
-      y: nearest.y + nearest.displayH - HARE_PX + 8,
+      x: nearest.x + nearest.displayW / 2 - petSizePx / 2,
+      y: nearest.y + nearest.displayH - petSizePx + 8,
     }
     eatStateRef.current = 'going_study'
     setEatState('going_study')
@@ -323,7 +328,7 @@ export function useHareMovement({
     if (studyStopTrigger === 0) return
     eatStateRef.current = 'idle'
     setEatState('idle')
-    wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+    wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
   }, [studyStopTrigger])
 
   // ── Celebration run → 3-loop run+ball sequence ────────────────
@@ -349,11 +354,11 @@ export function useHareMovement({
     if (greetTrigger === 0) return
     const pos = petPosRef.current
     // Compute center of whichever area the pet is currently in
-    const areaId    = getAreaAtPoint(pos.x + HARE_PX / 2, pos.y + HARE_PX / 2)
+    const areaId    = getAreaAtPoint(pos.x + petSizePx / 2, pos.y + petSizePx / 2)
     const col       = areaId % 3
     const screenRow = 2 - Math.floor(areaId / 3)
-    const cx        = col * AREA_W + AREA_W / 2 - HARE_PX / 2
-    const cy        = screenRow * AREA_H + AREA_H / 2 - HARE_PX / 2
+    const cx        = col * AREA_W + AREA_W / 2 - petSizePx / 2
+    const cy        = screenRow * AREA_H + AREA_H / 2 - petSizePx / 2
     greetTargetRef.current = { x: cx, y: cy }
     targetPosRef.current   = { x: cx, y: cy }
     eatStateRef.current    = 'going_greet'
@@ -375,13 +380,13 @@ export function useHareMovement({
        */
       const clampToUnlocked = (nx, ny, pos) => {
         const unlocked = unlockedAreasRef.current
-        if (unlocked.includes(getAreaAtPoint(nx + HARE_PX / 2, ny + HARE_PX / 2)))
+        if (unlocked.includes(getAreaAtPoint(nx + petSizePx / 2, ny + petSizePx / 2)))
           return { x: nx, y: ny }
-        if (unlocked.includes(getAreaAtPoint(nx + HARE_PX / 2, pos.y + HARE_PX / 2)))
+        if (unlocked.includes(getAreaAtPoint(nx + petSizePx / 2, pos.y + petSizePx / 2)))
           return { x: nx, y: pos.y }
-        if (unlocked.includes(getAreaAtPoint(pos.x + HARE_PX / 2, ny + HARE_PX / 2)))
+        if (unlocked.includes(getAreaAtPoint(pos.x + petSizePx / 2, ny + petSizePx / 2)))
           return { x: pos.x, y: ny }
-        wanderTargetRef.current = randomWanderTarget(unlocked)
+        wanderTargetRef.current = randomWanderTarget(unlocked, petSizePx)
         return { x: pos.x, y: pos.y }
       }
 
@@ -401,14 +406,14 @@ export function useHareMovement({
 
         // Returns the first blocking prop at (px,py), or null if none.
         const blockingProp = (px, py) => {
-          const cx = px + HARE_PX / 2, cy = py + HARE_PX / 2
+          const cx = px + petSizePx / 2, cy = py + petSizePx / 2
           return WORLD_PROPS.find(p =>
             p.collisionR > 0 &&
-            Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + HARE_PX / 2
+            Math.hypot(cx - (p.x + p.displayW / 2), cy - (p.y + p.displayH / 2)) < p.collisionR + petSizePx / 2
           ) ?? null
         }
         const passable = (px, py) =>
-          unlocked.includes(getAreaAtPoint(px + HARE_PX / 2, py + HARE_PX / 2)) && !blockingProp(px, py)
+          unlocked.includes(getAreaAtPoint(px + petSizePx / 2, py + petSizePx / 2)) && !blockingProp(px, py)
 
         if (passable(nx, ny))    return { x: nx, y: ny }
         if (passable(nx, pos.y)) return { x: nx, y: pos.y }
@@ -422,19 +427,19 @@ export function useHareMovement({
         if (stuck) {
           const pcx = stuck.x + stuck.displayW / 2
           const pcy = stuck.y + stuck.displayH / 2
-          const ex  = pos.x + HARE_PX / 2 - pcx
-          const ey  = pos.y + HARE_PX / 2 - pcy
+          const ex  = pos.x + petSizePx / 2 - pcx
+          const ey  = pos.y + petSizePx / 2 - pcy
           const ed  = Math.hypot(ex, ey) || 1
           const escX = pos.x + (ex / ed) * WALK_SPEED
           const escY = pos.y + (ey / ed) * WALK_SPEED
           // Accept the escape even if still overlapping — we'll clear on
           // subsequent ticks.  Only reject if it crosses a fence.
-          if (unlocked.includes(getAreaAtPoint(escX + HARE_PX / 2, escY + HARE_PX / 2))) {
+          if (unlocked.includes(getAreaAtPoint(escX + petSizePx / 2, escY + petSizePx / 2))) {
             return { x: escX, y: escY }
           }
         }
 
-        wanderTargetRef.current = randomWanderTarget(unlocked)
+        wanderTargetRef.current = randomWanderTarget(unlocked, petSizePx)
         return { x: pos.x, y: pos.y }
       }
 
@@ -478,7 +483,7 @@ export function useHareMovement({
           setTimeout(() => {
             eatStateRef.current = 'idle'; setEatState('idle')
             directionRef.current = 'left'; setDirection('left')
-            wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+            wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
             if (onAteRef.current) onAteRef.current()
             setTimeout(() => restoreGrassPatch(idx), 45000)
           }, 4000)
@@ -530,7 +535,7 @@ export function useHareMovement({
             } else {
               // All 3 loops done — return to idle wander
               eatStateRef.current = 'idle'; setEatState('idle')
-              wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+              wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
             }
           }, 1260) // 9 frames × 140 ms = ball anim duration
           return
@@ -555,7 +560,7 @@ export function useHareMovement({
           setTimeout(() => {
             if (eatStateRef.current === 'resting') {
               eatStateRef.current = 'idle'; setEatState('idle')
-              wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+              wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
             }
           }, 1600)  // slightly longer than lick anim (1540ms)
           return
@@ -578,7 +583,7 @@ export function useHareMovement({
           petPosRef.current = { x: tx, y: ty }; setPetPos({ x: tx, y: ty })
           setTimeout(() => {
             eatStateRef.current = 'idle'; setEatState('idle')
-            wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+            wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
           }, 4000)
           return
         }
@@ -593,7 +598,7 @@ export function useHareMovement({
       const dx = wt.x - pos.x, dy = wt.y - pos.y
       const dist = Math.hypot(dx, dy)
       if (dist < WALK_SPEED + 1) {
-        wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current)
+        wanderTargetRef.current = randomWanderTarget(unlockedAreasRef.current, petSizePx)
         wanderStuckRef.current  = 0
         wanderPrevDistRef.current = Infinity
         return
@@ -615,7 +620,7 @@ export function useHareMovement({
       } else {
         wanderStuckRef.current += 1
         if (wanderStuckRef.current >= 20) {  // ~1 s at 50 ms/tick
-          wanderTargetRef.current   = randomWanderTarget(unlockedAreasRef.current)
+          wanderTargetRef.current   = randomWanderTarget(unlockedAreasRef.current, petSizePx)
           wanderStuckRef.current    = 0
           wanderPrevDistRef.current = Infinity
         }

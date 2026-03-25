@@ -82,9 +82,9 @@ const SHOP_SECTIONS = [
 ]
 
 const ANIMATION_ITEMS = [
-  { id: 'ball_roll',  name: 'Ball Roll',   icon: '🎱', cost: 1, requiredLevel: 3, desc: 'Bubby rolls a ball during play!' },
-  { id: 'stretch',    name: 'Stretch',     icon: '🤸', cost: 1, requiredLevel: 5, desc: 'Bubby does a full body stretch!' },
-  { id: 'happy_hop',  name: 'Happy Hop',   icon: '🌸', cost: 1, requiredLevel: 7, desc: 'Bubby hops with joy!' },
+  { id: 'ball_roll',    name: 'Ball Roll',     icon: '🎱', cost: 1, requiredLevel: 3, desc: 'Bubby rolls a ball during play!' },
+  { id: 'workout_lift', name: 'Dumbbell Lift', icon: '🏋️', cost: 1, requiredLevel: 4, desc: 'Bubby pumps iron after a workout!' },
+  { id: 'happy_hop',   name: 'Happy Hop',      icon: '🌸', cost: 1, requiredLevel: 7, desc: 'Bubby hops with joy when leveling up!' },
 ]
 
 // Inject real SVG URLs after import (can't do this at module level before imports)
@@ -114,6 +114,7 @@ function Game({ user }) {
   const [studyStopTrigger,   setStudyStopTrigger]   = useState(0)
   const [celebrateTrigger,   setCelebrateTrigger]   = useState(0)
   const [greetTrigger,       setGreetTrigger]       = useState(0)
+  const [workoutTrigger,     setWorkoutTrigger]     = useState(0)
   const studyStartedRef = useRef(false)  // true once hare has been sent to a tree
   const [showStretchPopup, setShowStretchPopup] = useState(false)
   const [showShop, setShowShop]         = useState(false)
@@ -299,6 +300,7 @@ function Game({ user }) {
       // Document doesn't exist yet — create it
       await setDoc(workoutsRef, { varun: {}, leena: {}, [userKey]: { [todayISO]: answer } })
     }
+    if (answer === 'yes') setWorkoutTrigger(n => n + 1)   // trigger dumbbell-lift anim if unlocked
     setShowWorkoutPopup(false)
   }
 
@@ -833,6 +835,7 @@ function Game({ user }) {
           petType={activePet}
           petHunger={pet.hunger}
           greetTrigger={greetTrigger}
+          workoutTrigger={workoutTrigger}
           thoughtBubble={thoughtBubble}
           unlockedAnimations={pet.unlockedAnimations || []}
         />

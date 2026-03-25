@@ -53,7 +53,7 @@ import catEat   from '../assets/sprites/cat_eat.png'    // 392×112 — 7fr × e
 import catDrink from '../assets/sprites/cat_drink.png'  // 336×56  — 6fr south
 import catSit   from '../assets/sprites/cat_sit.png'    // 448×112 — 8fr × east+west
 import catLick  from '../assets/sprites/cat_lick.png'   // 672×56  — 12fr south
-import catPuke  from '../assets/sprites/cat_puke.png'   // 504×112 — 9fr × east+west
+import catScratch from '../assets/sprites/cat_idle.png'  // 256×32  — 8fr south (ear scratch, 32px native)
 import catJump  from '../assets/sprites/cat_jump.png'   // 448×112 — 8fr × east+west
 import catYawn  from '../assets/sprites/cat_yawn.png'   // 616×56  — 11fr south
 import catBall  from '../assets/sprites/cat_ball.png'   // 504×112 — 9fr × east+west
@@ -72,22 +72,24 @@ const GHOST_OFFSET_Y = -10
 // ── Bubby (cat) display constants — native 56px, shown at 80px ─
 const BUBBY_PX    = 80
 const BUBBY_SCALE = BUBBY_PX / 56
+// cat_scratch (cat_idle.png) is 32px native — use its own scale to display at BUBBY_PX
+const SCRATCH_SCALE = BUBBY_PX / 32   // 2.5
 const BUBBY_SZ = {
-  walk:  { w: Math.round(448 * BUBBY_SCALE), h: Math.round(224 * BUBBY_SCALE) },
-  run:   { w: Math.round(336 * BUBBY_SCALE), h: Math.round(224 * BUBBY_SCALE) },
-  eat:   { w: Math.round(392 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
-  drink: { w: Math.round(336 * BUBBY_SCALE), h: Math.round( 56 * BUBBY_SCALE) },
-  sit:   { w: Math.round(448 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
-  lick:  { w: Math.round(672 * BUBBY_SCALE), h: Math.round( 56 * BUBBY_SCALE) },
-  puke:  { w: Math.round(504 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
-  jump:  { w: Math.round(448 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
-  yawn:  { w: Math.round(616 * BUBBY_SCALE), h: Math.round( 56 * BUBBY_SCALE) },
-  ball:  { w: Math.round(504 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
-  stand: { w: Math.round(504 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
+  walk:    { w: Math.round(448 * BUBBY_SCALE), h: Math.round(224 * BUBBY_SCALE) },
+  run:     { w: Math.round(336 * BUBBY_SCALE), h: Math.round(224 * BUBBY_SCALE) },
+  eat:     { w: Math.round(392 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
+  drink:   { w: Math.round(336 * BUBBY_SCALE), h: Math.round( 56 * BUBBY_SCALE) },
+  sit:     { w: Math.round(448 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
+  lick:    { w: Math.round(672 * BUBBY_SCALE), h: Math.round( 56 * BUBBY_SCALE) },
+  jump:    { w: Math.round(448 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
+  yawn:    { w: Math.round(616 * BUBBY_SCALE), h: Math.round( 56 * BUBBY_SCALE) },
+  ball:    { w: Math.round(504 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
+  stand:   { w: Math.round(504 * BUBBY_SCALE), h: Math.round(112 * BUBBY_SCALE) },
+  scratch: { w: Math.round(256 * SCRATCH_SCALE), h: Math.round(32 * SCRATCH_SCALE) }, // 640×80
 }
 // Direction rows for cat walk/run (4-dir sheets, 80px per row)
 const BUBBY_DIR_ROW = { down: 0, up: -BUBBY_PX, left: -BUBBY_PX * 2, right: -BUBBY_PX * 3 }
-// East/West rows for eat, sit, puke, jump (2-row sheets)
+// East/West rows for eat, sit, jump (2-row sheets)
 const BUBBY_EW_ROW  = { right: 0, left: -BUBBY_PX, down: 0, up: 0 }
 
 // ── Day / night helpers ────────────────────────────────────────
@@ -134,7 +136,8 @@ export default function Pet({
   petHunger          = 80,
   greetTrigger       = 0,        // increment to send Bubby to area center + lick
   thoughtBubble      = null,     // { message: string } | null — shows a thought bubble above the pet
-  unlockedAnimations = [],       // animation IDs unlocked in shop: 'ball_roll', 'stretch', 'happy_hop'
+  unlockedAnimations = [],       // animation IDs unlocked in shop: 'ball_roll', 'workout_lift', 'happy_hop'
+  workoutTrigger     = 0,        // increment to play dumbbell-lift animation (requires 'workout_lift' unlock)
 }) {
   const [isNight, setIsNight] = useState(checkIsNight)
   const onPetClickRef         = useRef(onPetClick)
@@ -258,7 +261,8 @@ export default function Pet({
     }
   }, [petType, eatState])
 
-  // Periodic lick / yawn — only while fully still (idle or resting)
+  // Periodic lick / yawn / scratch — only while fully still (idle or resting)
+  // Probabilities: lick 50%, yawn 30%, scratch 20%
   useEffect(() => {
     if (petType !== 'bubby') return
     if (eatState !== 'idle' && eatState !== 'resting') return
@@ -267,8 +271,10 @@ export default function Pet({
         // Double-check we're still still before playing
         const cur = eatStateRefLocal.current
         if (cur !== 'idle' && cur !== 'resting') { schedule(); return }
-        const pick = Math.random() < 0.6 ? 'lick' : 'yawn'
-        const dur  = pick === 'lick' ? 1540 : 1400  // 11 steps×140ms vs 10 steps×140ms
+        const r    = Math.random()
+        const pick = r < 0.5 ? 'lick' : r < 0.8 ? 'yawn' : 'scratch'
+        // lick: 12fr×140ms=1680ms  yawn: 11fr×140ms=1540ms  scratch: 8fr×110ms=880ms
+        const dur  = pick === 'lick' ? 1680 : pick === 'yawn' ? 1540 : 880
         if (pick === 'lick') catAnimFreezeRef.current = true
         setCatSpecialAnim(pick)
         catInnerTimerRef.current = setTimeout(() => {
@@ -287,29 +293,18 @@ export default function Pet({
     }
   }, [petType, eatState])
 
-  // Puke when hunger < 10% — only while still
+  // Dumbbell lift after workout confirmed (requires 'workout_lift' unlock) — plays twice
   useEffect(() => {
-    if (petType !== 'bubby' || petHunger >= 10) return
-    if (eatState !== 'idle' && eatState !== 'resting') return
-    const t = setTimeout(() => {
-      if (eatStateRefLocal.current !== 'idle' && eatStateRefLocal.current !== 'resting') return
-      setCatSpecialAnim('puke')
-      catInnerTimerRef.current = setTimeout(() => setCatSpecialAnim(null), 1120)  // 8 steps × 140ms
-    }, 3000 + Math.random() * 6000)
+    if (petType !== 'bubby' || !workoutTrigger) return
+    if (!unlockedAnimations.includes('workout_lift')) return
+    setCatSpecialAnim('workout')
+    const t = setTimeout(() => setCatSpecialAnim(null), 2600)  // 2 × 1.26s + buffer
     return () => clearTimeout(t)
-  }, [petType, petHunger, eatState])
+  }, [petType, workoutTrigger, unlockedAnimations])
 
-  // Stand up after resting (requires 'stretch' unlock); Happy Hop after leveling (requires 'happy_hop')
+  // Happy Hop after leveling (requires 'happy_hop' unlock)
   useEffect(() => {
     if (petType !== 'bubby') return
-    if (eatState === 'idle' && prevEatStateRef.current === 'resting') {
-      if (unlockedAnimations.includes('stretch')) {
-        setCatSpecialAnim('stand')
-        const t = setTimeout(() => setCatSpecialAnim(null), 1120)  // 8 steps × 140ms
-        prevEatStateRef.current = eatState
-        return () => clearTimeout(t)
-      }
-    }
     if (eatState === 'idle' && prevEatStateRef.current === 'leveling') {
       if (unlockedAnimations.includes('happy_hop')) {
         setCatSpecialAnim('jump')
@@ -414,16 +409,18 @@ export default function Pet({
       bubbyCssClass += ' bubby-jump'
       bubbyBgSize    = `${BUBBY_SZ.jump.w}px ${BUBBY_SZ.jump.h}px`
       bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
-    } else if (canPlaySpecial && catSpecialAnim === 'stand') {
+    } else if (canPlaySpecial && catSpecialAnim === 'workout') {
+      // Dumbbell lift — shop unlock 'workout_lift'; plays 2× via bubby-workout CSS
       bubbySprite    = catStand
-      bubbyCssClass += ' bubby-stand'
+      bubbyCssClass += ' bubby-workout'
       bubbyBgSize    = `${BUBBY_SZ.stand.w}px ${BUBBY_SZ.stand.h}px`
       bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
-    } else if (canPlaySpecial && catSpecialAnim === 'puke') {
-      bubbySprite    = catPuke
-      bubbyCssClass += ' bubby-puke'
-      bubbyBgSize    = `${BUBBY_SZ.puke.w}px ${BUBBY_SZ.puke.h}px`
-      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+    } else if (canPlaySpecial && catSpecialAnim === 'scratch') {
+      // Ear scratch — automatic idle; single row, no directional variant
+      bubbySprite    = catScratch
+      bubbyCssClass += ' bubby-scratch'
+      bubbyBgSize    = `${BUBBY_SZ.scratch.w}px ${BUBBY_SZ.scratch.h}px`
+      bubbyBgPosY    = '0px'
     } else if (canPlaySpecial && catSpecialAnim === 'lick') {
       bubbySprite    = catLick
       bubbyCssClass += ' bubby-lick'

@@ -689,7 +689,7 @@ export const WORLD_PROPS = [
   // Lamp is 40×70 px; placed at relX=0.68 so its right edge meets the well's
   // left edge, and relY=0.18 so its base sits at roughly 1/3 down the well.
   { id: 'lamp_2', type: 'lamp1',
-    areaId: 0, tier: 3, ...pos(0, 0.68, 0.18),
+    areaId: 0, tier: 2, ...pos(0, 0.68, 0.18),
     displayW: 40, displayH: 70, collisionR: 0,
     emitsLight: true, glowRadius: 100, glowOffsetY: 0.12 },
 

@@ -34,6 +34,7 @@ import {
 import { useGrassPatches }  from '../hooks/useGrassPatches.js'
 import { useHareMovement }  from '../hooks/useHareMovement.js'
 import ThoughtBubble        from './ThoughtBubble.jsx'
+import campfireUrl          from '../assets/sounds/sfx/campfire.mp3'
 
 
 // Sprite sheets
@@ -178,6 +179,59 @@ export default function Pet({
     onAte,
     onLevelUpComplete,
   })
+
+  // ── Campfire proximity audio ──────────────────────────────────
+  // Loops campfire.mp3 only when the pet is within CAMPFIRE_RADIUS px of
+  // the campfire prop. Silences automatically when the pet moves away.
+  const campfireAudioRef  = useRef(null)
+  const campfireNearRef   = useRef(false)
+  const CAMPFIRE_RADIUS   = 180   // px — audible range around flame centre
+
+  // Create the looping Audio object once on mount
+  useEffect(() => {
+    const audio = new Audio(campfireUrl)
+    audio.loop   = true
+    audio.volume = 0.35
+    campfireAudioRef.current = audio
+    return () => {
+      audio.pause()
+      campfireAudioRef.current = null
+    }
+  }, [])
+
+  // Check proximity whenever the pet moves
+  useEffect(() => {
+    const campfire = WORLD_PROPS.find(p => p.id === 'campfire_0')
+    if (!campfire) return
+    // Only play when the campfire prop is currently visible (area 4 unlocked & tiered)
+    const isVisible = (visibleProps ?? WORLD_PROPS).some(p => p.id === 'campfire_0')
+    if (!isVisible) {
+      if (campfireNearRef.current) {
+        campfireNearRef.current = false
+        campfireAudioRef.current?.pause()
+      }
+      return
+    }
+
+    const cfCx  = campfire.x + campfire.displayW / 2
+    const cfCy  = campfire.y + campfire.displayH / 2
+    const petCx = petPos.x + HARE_PX / 2
+    const petCy = petPos.y + HARE_PX / 2
+    const dist  = Math.hypot(petCx - cfCx, petCy - cfCy)
+    const isNear = dist < CAMPFIRE_RADIUS
+
+    const audio = campfireAudioRef.current
+    if (!audio) return
+
+    if (isNear && !campfireNearRef.current) {
+      campfireNearRef.current = true
+      audio.currentTime = audio.currentTime > 0 ? audio.currentTime : 0
+      audio.play().catch(() => {/* blocked until first gesture — silently skip */})
+    } else if (!isNear && campfireNearRef.current) {
+      campfireNearRef.current = false
+      audio.pause()
+    }
+  }, [petPos, visibleProps])
 
   // ── Bubby special animations ──────────────────────────────────
   // 'lick' | 'yawn' | 'puke' | 'stand' | null — overrides idle sprite when set

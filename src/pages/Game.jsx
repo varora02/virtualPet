@@ -9,6 +9,7 @@ import { EXP_PER_LEVEL, PLAY_EXP_REWARD, ABILITIES } from '../levelConfig'
 import basketballUrl  from '../assets/svgs/basketball.svg'
 import soccerballUrl  from '../assets/svgs/soccerball.svg'
 import { WORLD_PROPS } from '../worldData'
+import { useSoundManager } from '../hooks/useSoundManager'
 import './Game.css'
 
 const STORAGE_KEY = 'virtualpet_progression'
@@ -136,6 +137,9 @@ function Game({ user }) {
   // Flash fires AFTER the shop closes — store the areaId here during purchase,
   // then trigger setUpgradedArea when the modal's onClose fires.
   const pendingFlashAreaRef = useRef(null)
+
+  // ── Sound manager ─────────────────────────────────────────────
+  const { play } = useSoundManager()
 
   const hasCheckedDaily                 = useRef(false)
   const hasCheckedNotif                 = useRef(false)
@@ -353,6 +357,7 @@ function Game({ user }) {
     clearTimeout(thoughtTimerRef.current)
     thoughtKeyRef.current += 1
     setThoughtBubble({ message, key: thoughtKeyRef.current })
+    play('thought')
     thoughtTimerRef.current = setTimeout(() => setThoughtBubble(null), 2100)
   }
 
@@ -384,6 +389,8 @@ function Game({ user }) {
   // Hunger rises by 50 (50% of max) per meal; only fires when real grass was eaten.
   const handleAte = () => {
     const p = petRef.current
+    play('eat')
+    play('coin')
     updatePet(
       { hunger: Math.min(100, p.hunger + 50), happiness: Math.min(100, p.happiness + 5) },
       `${userName} fed ${p.name} +1 🪙`,
@@ -394,6 +401,8 @@ function Game({ user }) {
   const waterPet = () => {
     if (pet.energy <= 20) { triggerThought("I'm tired... zzz 💤"); return }
     if (pet.thirst >= 100) return
+    play('drink')
+    play('coin')
     setWaterTrigger(n => n + 1)
     updatePet(
       { thirst: Math.min(100, pet.thirst + 25), happiness: Math.min(100, pet.happiness + 3) },
@@ -426,6 +435,9 @@ function Game({ user }) {
 
     await updatePet(statUpdates, activityText, 1)
 
+    play('celebrate')
+    play('coin')
+    if (didLevelUp) play('levelup')
     setCelebrateTrigger(n => n + 1)   // trigger run→jump animation for Bubby / victory lap for Rompy
 
     if (didLevelUp) {
@@ -440,6 +452,8 @@ function Game({ user }) {
 
   // Called when user clicks the hare — show level popup & pause movement
   const handlePetClick = () => {
+    if (activePet === 'bubby') play('meow')
+    else play('click')
     setShowLevelPopup(true)
   }
 
@@ -449,6 +463,7 @@ function Game({ user }) {
 
   const restPet = () => {
     if (pet.energy >= 100) return
+    play('rest')
     setRestTrigger(n => n + 1)   // signal Pet to stand still 5s
     updatePet(
       { energy: Math.min(100, pet.energy + 30) },
@@ -474,6 +489,8 @@ function Game({ user }) {
       10
     )
     // Post-session celebrations
+    play('celebrate')
+    play('coin')
     setShowStretchPopup(true)
     setCelebrateTrigger(n => n + 1)
   }
@@ -499,10 +516,15 @@ function Game({ user }) {
   }
 
   const handleStretchYes = () => {
+    play('celebrate')
+    play('coin')
     updatePet(
-      { energy: Math.min(100, pet.energy + 3) },
-      `${userName} stretched — Rompy is happy! +3 energy ✨`,
-      0
+      {
+        energy:    Math.min(100, pet.energy    + 15),
+        happiness: Math.min(100, pet.happiness + 10),
+      },
+      `${userName} stretched — great break! +15 energy, +10 happiness +5 🪙`,
+      5
     )
     setShowStretchPopup(false)
   }
@@ -564,6 +586,7 @@ function Game({ user }) {
           timestamp: new Date().toISOString()
         })
       })
+      play('coin')
     } catch (err) {
       console.error('Error buying item:', err)
     }
@@ -586,6 +609,7 @@ function Game({ user }) {
           timestamp: new Date().toISOString()
         })
       })
+      play('coin')
     } catch (err) {
       console.error('Error buying animation:', err)
     }
@@ -593,12 +617,13 @@ function Game({ user }) {
 
   // ── Tier progression ──────────────────────────────────────────
   // Area 0 (BL) is always tier 1 from the start. Progression:
-  //   Upgrade area 0 T1→T2→T3, then unlock area 1 at T1, upgrade T2→T3, unlock area 2, etc.
-  //   After all 9 areas reach T3 AND all 9 are in Firestore unlockedAreas: offer the path unlock.
+  //   Upgrade area 0 T1→T2, then unlock area 1 at T1, upgrade T1→T2, unlock area 2, etc.
+  //   After all 9 areas reach T2 AND all 9 are in Firestore unlockedAreas: offer the path unlock.
   //
   // We require BOTH conditions to prevent stale localStorage data from unlocking
   // the path early when Firestore hasn't confirmed all regions are actually unlocked.
-  const allAreasMaxed = PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
+  const MAX_TIER = 2
+  const allAreasMaxed = PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= MAX_TIER)
   const allAreasFirestoreUnlocked = PROGRESSION_ORDER.every(id =>
     id === 0 || (pet.unlockedAreas || [0]).includes(id)
   )
@@ -614,16 +639,16 @@ function Game({ user }) {
       const isUnlocked    = effectiveTier > 0
 
       if (!isUnlocked) {
-        // Area not yet unlocked — only show if previous area is T3
+        // Area not yet unlocked — only show if previous area is at MAX_TIER
         const prevArea = PROGRESSION_ORDER[i - 1]
-        if ((areaTiers[prevArea] ?? 0) < 3) break  // previous not maxed, stop here
+        if ((areaTiers[prevArea] ?? 0) < MAX_TIER) break  // previous not maxed, stop here
         return { type: 'unlock', areaId, cost: 1 }
       }
-      if (effectiveTier < 3) {
+      if (effectiveTier < MAX_TIER) {
         return { type: 'tier', areaId, fromTier: effectiveTier, toTier: effectiveTier + 1, cost: 1 }
       }
     }
-    // All areas at T3 in both local state AND Firestore — offer the path
+    // All areas at MAX_TIER in both local state AND Firestore — offer the path
     if (canUnlockPath && !pathUnlocked) {
       return { type: 'path', cost: 1 }
     }
@@ -651,6 +676,7 @@ function Game({ user }) {
         ...areaUpdate,
         activities: arrayUnion({ text: activityText, user: userName, timestamp: new Date().toISOString() })
       })
+      play('coin')
       if (next.type === 'unlock') {
         setAreaTiers(prev => ({ ...prev, [next.areaId]: 1 }))
         pendingFlashAreaRef.current = next.areaId   // fires when shop closes
@@ -825,7 +851,7 @@ function Game({ user }) {
           </div>
 
           <div className="actions-section">
-            <button className="actions-toggle-btn" onClick={() => setShowActions(s => !s)}>
+            <button className="actions-toggle-btn" onClick={() => { play('toggle'); setShowActions(s => !s) }}>
               {showActions ? '▲ Close' : '🎮 Interact with Rompy'}
             </button>
             {showActions && (
@@ -879,7 +905,7 @@ function Game({ user }) {
 
           {/* Shop button — opens modal */}
           <div className="shop-section">
-            <button className="shop-toggle-btn" onClick={() => setShowShop(true)}>
+            <button className="shop-toggle-btn" onClick={() => { play('open'); setShowShop(true) }}>
               🛍 Shop  ·  🪙 {pet.coins || 0}
             </button>
           </div>
@@ -923,7 +949,7 @@ function Game({ user }) {
             <p className="stretch-body">Did you stand up and take a breather?</p>
             <div className="stretch-actions">
               <button className="stretch-btn stretch-yes" onClick={handleStretchYes}>
-                Yes! 🙆 <span className="stretch-bonus">+3 energy</span>
+                Yes! 🙆 <span className="stretch-bonus">+15 energy · +10 happiness · +5 🪙</span>
               </button>
               <button className="stretch-btn stretch-no" onClick={() => setShowStretchPopup(false)}>
                 Not yet
@@ -967,6 +993,7 @@ function Game({ user }) {
           onBuyAnimation={buyAnimation}
           currentLevel={currentLevel}
           onClose={() => {
+            play('close')
             setShowShop(false)
             // Trigger upgrade flash now that the shop is closed
             if (pendingFlashAreaRef.current !== null) {
@@ -1066,7 +1093,7 @@ function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUn
   const [activeTab, setActiveTab] = useState('items')
   const next = getNextUpgrade()
   // Use the stricter canUnlockPath (requires both local tier state + Firestore confirmation)
-  const allAreasDone = canUnlockPath ?? PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 3)
+  const allAreasDone = canUnlockPath ?? PROGRESSION_ORDER.every(id => (areaTiers[id] ?? 0) >= 2)
 
   return (
     <div className="shop-modal-overlay" onClick={onClose}>
@@ -1182,7 +1209,7 @@ function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUn
                   const isUnlocked = areaId === 0 ? true : unlockedAreas.includes(areaId)
                   const tier       = areaTiers[areaId] ?? (areaId === 0 ? 1 : 0)
                   const isCurrent  = next && next.type !== 'path' && next.areaId === areaId
-                  const isDone     = isUnlocked && tier >= 3
+                  const isDone     = isUnlocked && tier >= 2
 
                   return (
                     <div
@@ -1192,10 +1219,10 @@ function ShopModal({ pet, coins, areaTiers, unlockedAreas, getNextUpgrade, canUn
                       <span className="shop-prog-num">{i + 1}.</span>
                       <span className="shop-prog-name">{AREA_LABELS[areaId]}</span>
                       <span className="shop-prog-tiers">
-                        {[1, 2, 3].map(t => (
+                        {[1, 2].map(t => (
                           <span
                             key={t}
-                            className={`shop-tier-pip${tier >= 3 ? ' full' : tier >= t ? ' filled' : ''}`}
+                            className={`shop-tier-pip${tier >= 2 ? ' full' : tier >= t ? ' filled' : ''}`}
                           >T{t}</span>
                         ))}
                       </span>

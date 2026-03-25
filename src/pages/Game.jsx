@@ -8,6 +8,7 @@ import ActivityLog from '../components/ActivityLog'
 import { EXP_PER_LEVEL, PLAY_EXP_REWARD, ABILITIES } from '../levelConfig'
 import { WORLD_PROPS } from '../worldData'
 import { useSoundManager }     from '../hooks/useSoundManager'
+import { useMood }             from '../hooks/useMood'
 import ShopModal, { SHOP_ITEMS, ANIMATION_ITEMS, PROGRESSION_ORDER } from '../components/ShopModal'
 import './Game.css'
 
@@ -114,6 +115,13 @@ function Game({ user }) {
   // Flash fires AFTER the shop closes — store the areaId here during purchase,
   // then trigger setUpgradedArea when the modal's onClose fires.
   const pendingFlashAreaRef = useRef(null)
+
+  // ── Mood system state ─────────────────────────────────────────
+  const [lastLevelUp,      setLastLevelUp]      = useState(null)   // Date.now() on level-up
+  const [lastPurchase,     setLastPurchase]      = useState(null)   // Date.now() on shop purchase
+  const [isPomodoroActive, setIsPomodoroActive]  = useState(false)
+  const hasShownLoginThoughtRef = useRef(false)
+  const prevMoodRef             = useRef(null)
 
   // ── Sound manager ─────────────────────────────────────────────
   const { play, stop } = useSoundManager()
@@ -336,7 +344,7 @@ function Game({ user }) {
       const coinUpdates = coinDelta !== 0
         ? { coins: Math.max(0, (pet.coins || 0) + coinDelta) }
         : {}
-      await updateDoc(petRef, { ...updates, ...coinUpdates, activities: arrayUnion(activity) })
+      await updateDoc(petRef, { ...updates, ...coinUpdates, activities: arrayUnion(activity), lastInteraction: new Date().toISOString() })
     } catch (err) {
       console.error('Error updating pet:', err)
     }
@@ -350,6 +358,15 @@ function Game({ user }) {
     setThoughtBubble({ message, key: thoughtKeyRef.current })
     play('thought')
     thoughtTimerRef.current = setTimeout(() => setThoughtBubble(null), 2100)
+  }
+
+  // Shows a mood thought bubble (4 s duration — used on login and mood change).
+  const triggerMoodThought = (message) => {
+    clearTimeout(thoughtTimerRef.current)
+    thoughtKeyRef.current += 1
+    setThoughtBubble({ message, key: thoughtKeyRef.current })
+    play('thought')
+    thoughtTimerRef.current = setTimeout(() => setThoughtBubble(null), 4000)
   }
 
   // Spontaneous thoughts when hunger or thirst drops below 20 %.
@@ -437,6 +454,7 @@ function Game({ user }) {
 
     if (didLevelUp) {
       setIsLevelingUp(true)
+      setLastLevelUp(Date.now())
     }
   }
 
@@ -468,6 +486,7 @@ function Game({ user }) {
   }
 
   const onPomodoroComplete = () => {
+    setIsPomodoroActive(false)
     setHasInteracted(true)
     const today = new Date().toDateString()
     const prevSessions = (pet.lastStudyDate === today) ? (pet.todayStudySessions || 0) : 0
@@ -496,6 +515,7 @@ function Game({ user }) {
   // studyStartedRef tracks whether the hare has already reached a study tree
   // (so subsequent resumes use studyResumeTrigger, not studyTrigger).
   const handleStudyStart = () => {
+    setIsPomodoroActive(true)
     if (!studyStartedRef.current) {
       studyStartedRef.current = true
       setStudyTrigger(n => n + 1)   // hare walks to nearest tree
@@ -504,9 +524,11 @@ function Game({ user }) {
     }
   }
   const handleStudyPause = () => {
+    setIsPomodoroActive(false)
     setStudyPauseTrigger(n => n + 1)
   }
   const handleStudyStop = () => {
+    setIsPomodoroActive(false)
     studyStartedRef.current = false
     setStudyStopTrigger(n => n + 1)   // hare returns to idle wander
   }
@@ -583,6 +605,7 @@ function Game({ user }) {
         })
       })
       play('coin')
+      setLastPurchase(Date.now())
     } catch (err) {
       console.error('Error buying item:', err)
     }
@@ -606,6 +629,7 @@ function Game({ user }) {
         })
       })
       play('coin')
+      setLastPurchase(Date.now())
     } catch (err) {
       console.error('Error buying animation:', err)
     }
@@ -674,6 +698,7 @@ function Game({ user }) {
       })
       play('coin')
       play('unlock_area')
+      setLastPurchase(Date.now())
       if (next.type === 'unlock') {
         setAreaTiers(prev => ({ ...prev, [next.areaId]: 1 }))
         pendingFlashAreaRef.current = next.areaId   // fires when shop closes
@@ -717,6 +742,43 @@ function Game({ user }) {
     try { await signOut(auth) }
     catch (err) { console.error('Logout error:', err) }
   }
+
+  // ── Mood hook ─────────────────────────────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const { mood, emoji: moodEmoji, label: moodLabel, message: moodMessage } = useMood({
+    hunger:          pet.hunger,
+    thirst:          pet.thirst,
+    energy:          pet.energy,
+    happiness:       pet.happiness,
+    isPomodoro:      isPomodoroActive,
+    lastLevelUp,
+    lastPurchase,
+    lastInteraction: pet.lastInteraction ?? null,
+  })
+
+  // ── Show thought bubble on first login ────────────────────────
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (loading) return
+    if (hasShownLoginThoughtRef.current) return
+    hasShownLoginThoughtRef.current = true
+    const t = setTimeout(() => triggerMoodThought(moodMessage), 1500)
+    return () => clearTimeout(t)
+  // moodMessage intentionally excluded — we want the message captured at login time
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading])
+
+  // ── Re-trigger thought bubble when mood changes to 'lonely' ──
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  useEffect(() => {
+    if (loading) return
+    if (!hasShownLoginThoughtRef.current) return
+    if (mood === 'lonely' && prevMoodRef.current !== 'lonely') {
+      triggerMoodThought(moodMessage)
+    }
+    prevMoodRef.current = mood
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mood, loading])
 
   if (loading) {
     return (
@@ -851,6 +913,10 @@ function Game({ user }) {
             <CircStat label="Thirst"    value={pet.thirst}    color="#3498db" emoji="💧" />
             <CircStat label="Energy"    value={pet.energy}    color="#f39c12" emoji="⚡" />
             <CircStat label="Happiness" value={pet.happiness} color="#2ecc71" emoji="💚" />
+          </div>
+          <div className="mood-badge">
+            <span className="mood-badge-emoji">{moodEmoji}</span>
+            <span className="mood-badge-label">{moodLabel}</span>
           </div>
 
           <div className="actions-section">

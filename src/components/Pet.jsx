@@ -134,7 +134,7 @@ export default function Pet({
   pathVisible        = false,
   areaTiers          = { 0: 1 },
   upgradedArea       = null,
-  petType            = 'rompy',  // 'rompy' | 'bubby'
+  petType            = 'harold',  // 'harold' | 'bubby'
   petHunger          = 80,
   greetTrigger       = 0,        // increment to send Bubby to area center + lick
   thoughtBubble      = null,     // { message: string } | null — shows a thought bubble above the pet
@@ -530,7 +530,7 @@ export default function Pet({
       )}
 
 
-      {/* Active pet — Rompy (hare) or Bubby (cat) */}
+      {/* Active pet — Harold (hare) or Bubby (cat) */}
       {petType === 'bubby' ? (
         <div
           className={bubbyCssClass}

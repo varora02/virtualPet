@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase'
-import rompyUrl from '../assets/svgs/rompy.svg'
+import haroldUrl from '../assets/svgs/rompy.svg'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -25,9 +25,9 @@ function Login() {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.elephantWrap}>
-          <img src={rompyUrl} alt="Rompy" style={{ width: 120, height: 120, objectFit: 'contain' }} />
+          <img src={haroldUrl} alt="Harold" style={{ width: 120, height: 120, objectFit: 'contain' }} />
         </div>
-        <h1 style={styles.title}>Rompy</h1>
+        <h1 style={styles.title}>Harold</h1>
 
         <form onSubmit={handleLogin} style={styles.form}>
           <input

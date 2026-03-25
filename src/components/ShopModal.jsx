@@ -13,7 +13,7 @@ import soccerballUrl from '../assets/svgs/soccerball.svg'
 
 // ── Shop data ──────────────────────────────────────────────────────────────
 export const SHOP_ITEMS = [
-  { id: 'basketball', name: 'Basketball', imgUrl: basketballUrl, icon: '🏀', cost: 1, desc: 'An orange ball Rompy loves to dribble' },
+  { id: 'basketball', name: 'Basketball', imgUrl: basketballUrl, icon: '🏀', cost: 1, desc: 'An orange ball Harold loves to dribble' },
   { id: 'soccerball', name: 'Soccer Ball', imgUrl: soccerballUrl, icon: '⚽', cost: 1, desc: 'A classic ball for a kick-around' },
 ]
 
@@ -58,7 +58,7 @@ export default function ShopModal({
 
         {/* Header */}
         <div className="shop-modal-header">
-          <span className="shop-modal-title">🛍️ Rompy&apos;s Shop</span>
+          <span className="shop-modal-title">🛍️ Harold&apos;s Shop</span>
           <span className="shop-modal-coins">🪙 {coins}</span>
           <button className="shop-modal-close" onClick={onClose}>✕</button>
         </div>
@@ -114,7 +114,7 @@ export default function ShopModal({
                   )
                 })}
               </div>
-              <p className="shop-earn-tip">💡 Complete sessions, feed Rompy, and play to earn 🪙</p>
+              <p className="shop-earn-tip">💡 Complete sessions, feed Harold, and play to earn 🪙</p>
             </div>
           )}
 

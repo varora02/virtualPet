@@ -20,7 +20,7 @@
  *      id: 'speed_boost',
  *      name: 'Speed Boost',
  *      icon: '⚡',
- *      desc: 'Rompy dashes around at double speed for 10 seconds.',
+ *      desc: 'Harold dashes around at double speed for 10 seconds.',
  *      requiredLevel: 3,
  *      duration: 10000,
  *      type: 'buff',

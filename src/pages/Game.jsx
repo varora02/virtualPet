@@ -46,7 +46,7 @@ function loadProgression() {
 }
 
 const DEFAULT_PET = {
-  name: 'Rompy',
+  name: 'Harold',
   hunger: 80,
   thirst: 80,
   energy: 80,
@@ -77,7 +77,7 @@ function Game({ user }) {
   const [petKey, setPetKey]             = useState(0)   // increment → forces Pet remount → respawn at SPAWN_X/Y
   const [loading, setLoading]           = useState(true)
   const [activePet, setActivePet]       = useState(() =>
-    localStorage.getItem('activePet') || 'rompy'
+    localStorage.getItem('activePet') || 'harold'
   )
   const [showActions, setShowActions]   = useState(false)
   const [showActivity, setShowActivity] = useState(false)
@@ -169,14 +169,16 @@ function Game({ user }) {
     }))
   }, [areaTiers, pet.unlockedAreas, pet.coins])
 
-  const userName = user.email.includes('varun') ? 'Varun' : 'Leena'
+  const userName = user.email.includes('varun') ? 'Varun'
+                 : user.email.includes('leena') ? 'Leena'
+                 : (user.displayName || user.email.split('@')[0] || 'Tester')
 
   // ── "While you were away" banner logic ────────────────────────
   // Reads the other user's recent activities vs our lastSeen timestamp,
   // shows a banner, then stamps our lastSeen to now in Firestore.
   // Called once on first Firestore load AND on every tab-visibility change.
   function checkAndShowNotif(petData) {
-    const mySeenKey  = userName === 'Varun' ? 'lastSeenVarun' : 'lastSeenGF'
+    const mySeenKey  = userName === 'Varun' ? 'lastSeenVarun' : userName === 'Leena' ? 'lastSeenGF' : `lastSeen_${userName}`
     const otherUser  = userName === 'Varun' ? 'Leena' : 'Varun'
     const lastSeen   = petData[mySeenKey]   // ISO string or null
     const activities = petData.activities || []
@@ -216,8 +218,8 @@ function Game({ user }) {
       if (snapshot.exists()) {
         const data = snapshot.data()
         if (data.name === 'Ellie') {
-          updateDoc(petRef, { name: 'Rompy' })
-          data.name = 'Rompy'
+          updateDoc(petRef, { name: 'Harold' })
+          data.name = 'Harold'
         }
         setPet({ ...DEFAULT_PET, ...data })
 
@@ -281,7 +283,7 @@ function Game({ user }) {
     const pst = getPSTDate()
     if (pst.getHours() < 18) return
     const todayISO = getPSTISODate()
-    const userKey = userName === 'Varun' ? 'varun' : 'leena'
+    const userKey = userName === 'Varun' ? 'varun' : userName === 'Leena' ? 'leena' : userName.toLowerCase().replace(/\s+/g, '_')
     if ((data[userKey] || {})[todayISO]) return   // already answered
     hasShownWorkoutRef.current = true
     setShowWorkoutPopup(true)
@@ -289,7 +291,7 @@ function Game({ user }) {
 
   const handleWorkoutResponse = async (answer) => {
     const todayISO = getPSTISODate()
-    const userKey = userName === 'Varun' ? 'varun' : 'leena'
+    const userKey = userName === 'Varun' ? 'varun' : userName === 'Leena' ? 'leena' : userName.toLowerCase().replace(/\s+/g, '_')
     const workoutsRef = doc(db, 'workouts', 'shared-workouts')
     try {
       await updateDoc(workoutsRef, { [`${userKey}.${todayISO}`]: answer })
@@ -450,7 +452,7 @@ function Game({ user }) {
       setTimeout(() => play('cat_purr'), 800)   // start purr 0.8s after play
       setTimeout(() => stop('cat_purr'), 3800)  // stop after ~3s of purring
     }
-    setCelebrateTrigger(n => n + 1)   // trigger run→jump animation for Bubby / victory lap for Rompy
+    setCelebrateTrigger(n => n + 1)   // trigger run→jump animation for Bubby / victory lap for Harold
 
     if (didLevelUp) {
       setIsLevelingUp(true)
@@ -599,7 +601,7 @@ function Game({ user }) {
         coins: (pet.coins || 0) - item.cost,
         ...itemUpdate,
         activities: arrayUnion({
-          text: `${userName} unlocked ${item.name} for Rompy! 🛍`,
+          text: `${userName} unlocked ${item.name} for Harold! 🛍`,
           user: userName,
           timestamp: new Date().toISOString()
         })
@@ -783,7 +785,7 @@ function Game({ user }) {
   if (loading) {
     return (
       <div className="loading-screen">
-        <p className="loading-text">Finding Rompy...</p>
+        <p className="loading-text">Finding Harold...</p>
       </div>
     )
   }
@@ -816,14 +818,14 @@ function Game({ user }) {
           <span className="coin-badge">🪙 {pet.coins || 0}</span>
           <span className="streak-badge" title="Login streak">🔥 {pet.loginStreak || 0}</span>
           <span className="user-badge">
-            {userName === 'Varun' ? '💙' : '💖'} {userName}
+            {userName === 'Varun' ? '💙' : userName === 'Leena' ? '💖' : '🧪'} {userName}
           </span>
           <button
             className="pet-toggle-btn"
-            onClick={() => setActivePet(p => p === 'rompy' ? 'bubby' : 'rompy')}
+            onClick={() => setActivePet(p => p === 'harold' ? 'bubby' : 'harold')}
             title="Switch active pet"
           >
-            {activePet === 'rompy' ? '🐱 Play as Bubby' : '🐰 Play as Rompy'}
+            {activePet === 'harold' ? '🐱 Play as Bubby' : '🐰 Play as Harold'}
           </button>
           <button
             className="music-toggle-btn"
@@ -921,7 +923,7 @@ function Game({ user }) {
 
           <div className="actions-section">
             <button className="actions-toggle-btn" onClick={() => { play('toggle'); setShowActions(s => !s) }}>
-              {showActions ? '▲ Close' : '🎮 Interact with Rompy'}
+              {showActions ? '▲ Close' : '🎮 Interact with Harold'}
             </button>
             {showActions && (
               <div className="actions-container">
@@ -1013,8 +1015,8 @@ function Game({ user }) {
       {showStretchPopup && (
         <div className="stretch-overlay" onClick={() => setShowStretchPopup(false)}>
           <div className="stretch-modal" onClick={e => e.stopPropagation()}>
-            <div className="stretch-rompy">🐰</div>
-            <h3 className="stretch-title">Rompy wants to stretch!</h3>
+            <div className="stretch-harold">🐰</div>
+            <h3 className="stretch-title">Harold wants to stretch!</h3>
             <p className="stretch-body">Did you stand up and take a breather?</p>
             <div className="stretch-actions">
               <button className="stretch-btn stretch-yes" onClick={handleStretchYes}>
@@ -1106,7 +1108,13 @@ function WorkoutGrid({ workoutData }) {
           </tr>
         </thead>
         <tbody>
-          {[{ key: 'varun', label: 'Varun' }, { key: 'leena', label: 'Leena' }].map(({ key, label }) => (
+          {[
+            { key: 'varun', label: 'Varun' },
+            { key: 'leena', label: 'Leena' },
+            ...Object.keys(workoutData || {})
+              .filter(k => k !== 'varun' && k !== 'leena')
+              .map(k => ({ key: k, label: `🧪 ${k.charAt(0).toUpperCase() + k.slice(1)}` }))
+          ].map(({ key, label }) => (
             <tr key={key}>
               <td className="workout-grid-name-col">{label}</td>
               {weekDates.map(({ iso }) => (

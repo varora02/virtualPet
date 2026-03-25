@@ -104,7 +104,7 @@ All interactive and decorative props are defined in the `WORLD_PROPS` array. Non
 - **File**: `prop_well.png` (200 × 200 px source)
 - **Display**: 100 × 100 px
 - **Collision radius**: 52 px
-- **Interaction**: `water` — Rompy runs here when watered
+- **Interaction**: `water` — Harold runs here when watered
 
 #### Campfire (area 4 — MM)
 - **File**: `prop_campfire2.png` — 6-frame sprite sheet, 192 × 32 px total

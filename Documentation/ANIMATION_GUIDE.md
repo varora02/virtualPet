@@ -2,6 +2,8 @@
 
 This guide explains how sprite sheets are structured, CSS animations work, and how state transitions control what the player sees on screen.
 
+> **Note:** 'Rompy' is reserved for the upcoming elephant NPC companion. The hare character is named **Harold**.
+
 ---
 
 ## Bubby (Tuxedo Cat) Animations

@@ -35,8 +35,8 @@ function ActivityLog({ activities }) {
                 <span className="activity-text">{activity.text}</span>
                 <span className="activity-time">{formatTime(activity.timestamp)}</span>
               </div>
-              <div className={`activity-user ${activity.user === 'Varun' ? 'varun' : 'gf'}`}>
-                {activity.user === 'Varun' ? '💙' : '💖'}
+              <div className={`activity-user ${activity.user === 'Varun' ? 'varun' : activity.user === 'Leena' ? 'gf' : 'tester'}`}>
+                {activity.user === 'Varun' ? '💙' : activity.user === 'Leena' ? '💖' : '🧪'}
               </div>
             </div>
           ))}

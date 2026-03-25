@@ -179,13 +179,14 @@ function Game({ user }) {
   // Called once on first Firestore load AND on every tab-visibility change.
   function checkAndShowNotif(petData) {
     const mySeenKey  = userName === 'Varun' ? 'lastSeenVarun' : userName === 'Leena' ? 'lastSeenGF' : `lastSeen_${userName}`
-    const otherUser  = userName === 'Varun' ? 'Leena' : 'Varun'
+    const otherUser  = userName === 'Varun' ? 'Leena' : userName === 'Leena' ? 'Varun' : null
     const lastSeen   = petData[mySeenKey]   // ISO string or null
     const activities = petData.activities || []
 
     // Find activity from the other user that happened after our last visit
+    // Tester (otherUser === null) gets no "while you were away" banner
     const newActivity = activities.filter(a => {
-      if (a.user !== otherUser) return false
+      if (!otherUser || a.user !== otherUser) return false
       if (!lastSeen) return false   // first ever visit — no banner, just stamp
       return new Date(a.timestamp) > new Date(lastSeen)
     })
@@ -267,9 +268,8 @@ function Game({ user }) {
   useEffect(() => {
     const workoutsRef = doc(db, 'workouts', 'shared-workouts')
     const unsub = onSnapshot(workoutsRef, (snap) => {
-      const data = snap.exists()
-        ? { varun: snap.data().varun || {}, leena: snap.data().leena || {} }
-        : { varun: {}, leena: {} }
+      const raw = snap.exists() ? snap.data() : {}
+      const data = { varun: raw.varun || {}, leena: raw.leena || {}, ...raw }
       setWorkoutData(data)
       workoutDataRef.current = data
       // Show popup on first load if past 6pm PST and today not yet logged

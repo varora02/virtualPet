@@ -7,9 +7,11 @@ Save to: `VirtualPet/svgs/` — the code automatically picks them up from `src/a
 
 ## ✅ Already Have
 
+> **Note:** 'Rompy' is reserved for the upcoming elephant NPC companion. The hare character is named **Harold**.
+
 | File | Used For | Status |
 |------|----------|--------|
-| `rompy.svg` | Main character (all screens) | ✅ Wired up |
+| `rompy.svg` | Harold (hare) — main character (all screens) | ✅ Wired up |
 | `background3.svg` | World scene — daytime | ✅ Wired up |
 | `background2.svg` | World scene — critical/night mood | ✅ Wired up |
 | `grass.svg` | Ground strip texture | ✅ Wired up |
@@ -23,20 +25,20 @@ These replace the current CSS filter mood system with actual art.
 
 | File to download | Description | Size hint |
 |-----------------|-------------|-----------|
-| `rompy_happy.svg` | Rompy smiling, ears perked up, maybe a little bounce pose | Square ~200px |
-| `rompy_sad.svg` | Drooping ears, frown, maybe a small tear | Square ~200px |
-| `rompy_critical.svg` | Very sick — very droopy, grey-toned, slumped | Square ~200px |
-| `rompy_eating.svg` | Trunk reaching toward a food bowl, mid-chew | Square ~200px |
-| `rompy_drinking.svg` | Trunk dipping into water, small splash | Square ~200px |
-| `rompy_sleeping.svg` | Eyes closed, lying down, "ZZZ" optional | Square ~200px |
-| `rompy_playing.svg` | Energetic pose — maybe kicking or tossing a ball | Square ~200px |
-| `rompy_studying.svg` | Sitting, focused, little book or pencil | Square ~200px |
+| `harold_happy.svg` | Harold smiling, ears perked up, maybe a little bounce pose | Square ~200px |
+| `harold_sad.svg` | Drooping ears, frown, maybe a small tear | Square ~200px |
+| `harold_critical.svg` | Very sick — very droopy, grey-toned, slumped | Square ~200px |
+| `harold_eating.svg` | Eating a grass patch, mid-chew | Square ~200px |
+| `harold_drinking.svg` | Drinking from the well, small splash | Square ~200px |
+| `harold_sleeping.svg` | Eyes closed, lying down, "ZZZ" optional | Square ~200px |
+| `harold_playing.svg` | Energetic pose — maybe kicking or tossing a ball | Square ~200px |
+| `harold_studying.svg` | Sitting, focused, little book or pencil | Square ~200px |
 
 ---
 
 ## 🟠 Priority 2 — World Decorations (makes the scene feel alive)
 
-These get placed as objects Rompy can walk to and interact with.
+These get placed as objects Harold can walk to and interact with.
 
 | File | Description | Notes |
 |------|-------------|-------|
@@ -44,10 +46,10 @@ These get placed as objects Rompy can walk to and interact with.
 | `tree_large.svg` | Tall leafy tree | Background decoration |
 | `tree_small.svg` | Smaller tree / bush | Ground level |
 | `flower_patch.svg` | Small cluster of flowers | Ground decoration |
-| `food_bowl.svg` | Round bowl with food pellets (filled) | Where Rompy eats |
+| `food_bowl.svg` | Round bowl with food pellets (filled) | Where Harold eats |
 | `food_bowl_empty.svg` | Same bowl but empty | Shown when hunger is low |
-| `toy_ball.svg` | Simple bouncy ball | Where Rompy plays |
-| `bed_spot.svg` | Cozy sleeping pad / nest | Where Rompy rests |
+| `toy_ball.svg` | Simple bouncy ball | Where Harold plays |
+| `bed_spot.svg` | Cozy sleeping pad / nest | Where Harold rests |
 | `lake_scene.svg` | Cliff + waterfall gap + lake (right side, portrait) | Replaces current programmatic version |
 
 **Lake scene spec:**
@@ -61,15 +63,15 @@ These get placed as objects Rompy can walk to and interact with.
 
 ## 🟡 Priority 3 — Evolution Stages (V2.0 feature)
 
-Rompy levels up over time. Each stage looks older/more majestic.
+Harold levels up over time. Each stage looks older/more majestic.
 
 | File | Stage | Description |
 |------|-------|-------------|
-| `rompy_baby.svg` | Level 1–4 | Tiny, big eyes, wobbly proportions, very cute |
-| `rompy_teen.svg` | Level 5–9 | Slightly mischievous, energetic pose |
-| `rompy_adult.svg` | Level 10–14 | Current `rompy.svg` — calm and strong |
-| `rompy_elder.svg` | Level 15–19 | Distinguished, wise, maybe small tusks |
-| `rompy_mythic.svg` | Level 20 | Legendary — glowing aura, cosmic colouring, majestic |
+| `harold_baby.svg` | Level 1–4 | Tiny, big eyes, wobbly proportions, very cute |
+| `harold_teen.svg` | Level 5–9 | Slightly mischievous, energetic pose |
+| `harold_adult.svg` | Level 10–14 | Current `rompy.svg` — calm and strong |
+| `harold_elder.svg` | Level 15–19 | Distinguished, wise |
+| `harold_mythic.svg` | Level 20 | Legendary — glowing aura, cosmic colouring, majestic |
 
 ---
 
@@ -114,8 +116,8 @@ Full room backgrounds that replace the outdoor world scene when inside.
 | `background_rain.svg` | Rainy day | Grey sky, rain streaks, puddles |
 | `background_night.svg` | Night | Stars, moon, dark landscape — richer than bg2 |
 | `background_autumn.svg` | Autumn | Orange/red leaves, warm tones |
-| `rompy_scarf.svg` | Winter Rompy | Rompy wearing a cosy scarf |
-| `rompy_raincoat.svg` | Rainy Rompy | Rompy in a tiny raincoat |
+| `harold_scarf.svg` | Winter Harold | Harold wearing a cosy scarf |
+| `harold_raincoat.svg` | Rainy Harold | Harold in a tiny raincoat |
 
 ---
 
@@ -125,7 +127,7 @@ Full room backgrounds that replace the outdoor world scene when inside.
 - **Backgrounds:** No gradients in the SVG itself — code applies gradients/overlays
 - **Characters:** Clean silhouette, expressive face, chunky proportions
 - **File format:** `.svg` — keep paths clean and minimal (under ~500 paths ideally)
-- **Colour palette (Rompy):** Purple/lavender body `#7B6FAB`, pink blush `#F7A8B8`, dark outline `#2C2240`, cream tummy `#EDE0FF`
+- **Colour palette (Harold):** Purple/lavender body `#7B6FAB`, pink blush `#F7A8B8`, dark outline `#2C2240`, cream tummy `#EDE0FF`
 - **Avoid:** Raster effects, embedded photos, complex gradients inside the SVG
 
 ---

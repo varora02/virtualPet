@@ -14,9 +14,9 @@
 - [x] GitHub repo + Vercel CI/CD pipeline
 
 ### Pets
-- [x] **Rompy** (pixel-art hare) — walk, run, eat, drink, study at tree, idle wander, victory lap
+- [x] **Harold** (pixel-art hare) — walk, run, eat, drink, study at tree, idle wander, victory lap
 - [x] **Bubby** (tuxedo cat) — walk, run, eat, drink, sit, lick (idle), yawn (idle), ear-scratch (idle), workout_lift (shop unlock Lv4), happy_hop (shop unlock Lv7)
-- [x] Pet switcher — toggle between Rompy and Bubby in-session
+- [x] Pet switcher — toggle between Harold and Bubby in-session
 - [x] Click-to-inspect — level popup, XP bar
 
 ### World
@@ -55,12 +55,12 @@
 ### Ambient Life
 - [x] Blue robin bird — flies in from edge, perches with subtle chest-breathing, flies off
 - [x] Bubby idle animations (lick / yawn / ear-scratch) — random scheduler
-- [x] Rompy wander with collision redirect (won't grind against props)
+- [x] Harold wander with collision redirect (won't grind against props)
 
 ### Misc
 - [x] Login streak badge
 - [x] Activity log (shared between both users)
-- [x] Thought bubble on pet click (Rompy)
+- [x] Thought bubble on pet click (Harold)
 - [x] Workout check-in (prompts for workout done today)
 
 ---
@@ -80,6 +80,20 @@
 - Health integration (Apple Health / Google Fit step sync)
 - Couple challenges and leaderboards
 - Expanded coin economy and shop depth
+
+### 🐾 NPC Friends Pack
+
+> Note: "Rompy" is reserved for the upcoming elephant NPC companion. The hare character is named Harold.
+
+- Unlockable after all 9 world areas purchased
+- Friends Pack available in shop → buy individual NPC companions
+- NPCs appear based on conditions (time of day, stats, events) and drift in/out naturally
+- **Summon ability** unlocks when ALL friends purchased — Bubby whistles/dances and all NPCs emerge together for a special moment
+- **Starter NPCs:**
+  - Harold the Hare (grazes near grass patches, reacts to Bubby's presence)
+  - Robin Bird (existing ambient character, upgraded perch/preen behaviors)
+- **Future NPC:** Rompy the Elephant (requires pond/mud patch world asset to be built first)
+- NPC behaviors tied to world assets — Harold needs grass patches, Rompy needs a water feature
 
 ---
 

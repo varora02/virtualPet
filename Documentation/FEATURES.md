@@ -2,7 +2,7 @@
 
 ## Two Pets
 
-### Rompy (hare)
+### Harold (hare)
 The default pet. Wanders the world, walks to food/water/rest/study spots in response to button presses, does a victory lap when played with.
 
 ### Bubby (tuxedo cat)
@@ -38,7 +38,7 @@ Pet performs a victory animation (+happiness, +XP, +1 coin). May trigger a level
 Pet stands still for 5 seconds (+energy, +1 coin).
 
 ### Pomodoro Study Timer ⏱
-Start a 25-minute work session. Rompy walks to the nearest tree and reads; Bubby continues wandering nearby. When the session completes: +hunger, +happiness, +energy, +10 coins. A stretch popup appears offering a bonus (+energy, +happiness, +5 coins).
+Start a 25-minute work session. Harold walks to the nearest tree and reads; Bubby continues wandering nearby. When the session completes: +hunger, +happiness, +energy, +10 coins. A stretch popup appears offering a bonus (+energy, +happiness, +5 coins).
 
 ---
 
@@ -75,7 +75,7 @@ Fences close off locked areas and disappear when an area unlocks.
 
 ### Props
 
-- **Trees** — rest spots and Rompy's study locations
+- **Trees** — rest spots and Harold's study locations
 - **Well** — water source
 - **Campfire** — decorative; plays crackling audio when Bubby wanders nearby
 - **Lamps** — glow at night

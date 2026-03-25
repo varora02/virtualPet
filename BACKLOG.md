@@ -6,11 +6,23 @@ Roughly ordered by value. Quick wins at the top.
 
 ## 🧹 Dead code (delete these files)
 
-| File | Why it's dead |
-|---|---|
-| `src/hooks/useBackgroundMusic.js` | Replaced by `play('ambient_day')` directly in Game.jsx |
-| `src/components/RompySVG.jsx` | Never imported anywhere — leftover from the old SVG Rompy era |
-| `src/components/CatNPC.jsx` + `CatNPC.css` | Never imported anywhere — Bubby's wandering now lives in Pet.jsx |
+~~All done — useBackgroundMusic.js, RompySVG.jsx, CatNPC.jsx/.css deleted 2026-03-25~~
+
+---
+
+## 🎨 UI — bottom panel redesign
+
+Mockup saved at `VirtualPet/../ui-options.html`. Two options were designed:
+
+- **Option A — Game stamps**: saturated gradients, deep coloured drop shadows, inset top-highlight. Punchy and game-like.
+- **Option B — Pastel tiles**: light coloured fills with matching borders. Softer, calmer feel.
+
+Both share:
+- Icon-forward buttons (large emoji centred, tiny UPPERCASE label below)
+- "Close" shrinks from a full-width bar to a small pill in the top-right
+- Card gets a subtle purple-tinted shadow and a thin white border glow
+
+**Pending decision**: pick Option A, B, or a mix (e.g. A's card style + B's button colours) to implement.
 
 ---
 
@@ -67,3 +79,10 @@ Add props that only appear at high tiers (tier 3+). Fountain, statue, seasonal t
 ---
 
 *Last updated: 2026-03-25*
+
+---
+
+### Session log
+| Date | Done |
+|---|---|
+| 2026-03-25 | Bird bug fix, spawn timing to production, spriteUtils.js, useHareMovement parameterized, ShopModal extracted, WanderingNPC base created, dead code deleted |

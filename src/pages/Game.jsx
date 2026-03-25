@@ -453,6 +453,7 @@ function Game({ user }) {
     play('celebrate')
     play('coin')
     if (didLevelUp) play('levelup')
+    if (activePet === 'bubby') setTimeout(() => play('cat_purr'), 800)
     setCelebrateTrigger(n => n + 1)   // trigger run→jump animation for Bubby / victory lap for Rompy
 
     if (didLevelUp) {
@@ -504,6 +505,7 @@ function Game({ user }) {
       10
     )
     // Post-session celebrations
+    play('timer_finish')
     play('celebrate')
     play('coin')
     setShowStretchPopup(true)
@@ -692,6 +694,7 @@ function Game({ user }) {
         activities: arrayUnion({ text: activityText, user: userName, timestamp: new Date().toISOString() })
       })
       play('coin')
+      play('unlock_area')
       if (next.type === 'unlock') {
         setAreaTiers(prev => ({ ...prev, [next.areaId]: 1 }))
         pendingFlashAreaRef.current = next.areaId   // fires when shop closes
@@ -784,7 +787,7 @@ function Game({ user }) {
           <button
             className="music-toggle-btn"
             onClick={toggleMusic}
-            title={musicMuted ? 'Unmute music' : 'Mute music'}
+            title={musicMuted ? 'Turn on music' : 'Turn off music'}
           >{musicMuted ? '🔇' : '🎵'}</button>
           <button className="reset-btn" onClick={() => setShowResetConfirm(true)} title="Reset game state">↺ Reset</button>
           <button className="logout-btn" onClick={handleLogout}>Logout</button>

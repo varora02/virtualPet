@@ -33,8 +33,12 @@ export function useBackgroundMusic(isNight = false) {
   const nightRef  = useRef(null)
   const startedRef = useRef(false)
 
-  const [musicMuted, setMusicMuted] = useState(false)
-  const musicMutedRef = useRef(false)
+  // Start muted — user must explicitly press the 🎵 button to begin music.
+  // This also avoids a race condition where the first-gesture unlock fires
+  // at the same moment the toggle sets musicMuted=true, preventing music
+  // from ever starting.
+  const [musicMuted, setMusicMuted] = useState(true)
+  const musicMutedRef = useRef(true)
   useEffect(() => { musicMutedRef.current = musicMuted }, [musicMuted])
 
   // ── Create Audio objects once ─────────────────────────────────
@@ -135,7 +139,10 @@ export function useBackgroundMusic(isNight = false) {
       if (!active) return next
       if (next) {
         fadeTo(active, 0, () => active.pause())
-      } else if (startedRef.current) {
+      } else {
+        // Always start when unmuting — works even if the track has never
+        // played (startedRef.current === false).
+        startedRef.current = true
         active.play().then(() => fadeTo(active, MUSIC_VOLUME)).catch(() => {})
       }
       return next

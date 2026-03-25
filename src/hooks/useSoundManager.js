@@ -44,13 +44,17 @@ import closeUrl     from '../assets/sounds/sfx/close.wav'
 import errorUrl     from '../assets/sounds/sfx/error.wav'
 
 // Pet & ambient sounds
-import meowUrl      from '../assets/sounds/sfx/meow.mp3'
-import campfireUrl  from '../assets/sounds/sfx/campfire.mp3'
+import meowUrl         from '../assets/sounds/sfx/meow.mp3'
+import campfireUrl     from '../assets/sounds/sfx/campfire.mp3'
+import unlockAreaUrl   from '../assets/sounds/sfx/unlock_area.mp3'
+import catPurrUrl      from '../assets/sounds/sfx/cat_purr.mp3'
+import timerFinishUrl  from '../assets/sounds/sfx/timer_finish.mp3'
 
 /**
  * Map of sound IDs → asset URLs.
  * Keys available: eat, drink, coin, levelup, celebrate, thought, rest,
- *                 click, toggle, open, close, error, meow, campfire
+ *                 click, toggle, open, close, error, meow, campfire,
+ *                 unlock_area, cat_purr, timer_finish
  *
  * @type {Record<string, string | null>}
  */
@@ -70,29 +74,36 @@ const SOUND_MAP = {
   close:     closeUrl,
   error:     errorUrl,
   // Pet & ambient
-  meow:      meowUrl,
-  campfire:  campfireUrl,
+  meow:         meowUrl,
+  campfire:     campfireUrl,
+  unlock_area:  unlockAreaUrl,
+  cat_purr:     catPurrUrl,
+  timer_finish: timerFinishUrl,
 }
 
 // Default volume for each sound (0–1). Override here or via setVolume().
 const DEFAULT_VOLUME = {
-  // Game actions (−20% from original)
-  eat:       0.48,
-  drink:     0.44,
-  coin:      0.40,
+  // Game actions (action-button sounds −20% from prior pass)
+  eat:       0.38,
+  drink:     0.35,
+  coin:      0.32,
   levelup:   0.60,
-  celebrate: 0.52,
+  celebrate: 0.42,
   thought:   0.28,
-  rest:      0.36,
+  rest:      0.29,
   // UI interactions
   click:     0.32,
   toggle:    0.32,
-  open:      0.36,
-  close:     0.32,
+  open:      0.29,
+  close:     0.26,
   error:     0.40,
   // Pet & ambient
   meow:      0.48,
   campfire:  0.25,   // proximity audio — keep relatively quiet
+  // New sounds
+  unlock_area:   0.55,
+  cat_purr:      0.40,
+  timer_finish:  0.55,
 }
 
 // ─────────────────────────────────────────────────────────────

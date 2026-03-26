@@ -7,18 +7,19 @@
  *   • Hare sprite + ghost bud
  *   • In-world level popup
  *
- * Movement and interaction logic → useHareMovement (src/hooks/useHareMovement.js)
+ * Movement and interaction logic → usePetMovement (src/hooks/usePetMovement.js)
  * Grass patch state             → useGrassPatches  (src/hooks/useGrassPatches.js)
  * Prop data + asset map         → worldData.js      (src/worldData.js)
  * World dimensions              → worldConfig.js    (src/worldConfig.js)
  *
  * ─── ADDING A NEW INTERACTION ────────────────────────────────────────────────
- * See the extensibility guide at the top of useHareMovement.js.
+ * See the extensibility guide at the top of usePetMovement.js.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import { useState, useEffect, useRef } from 'react'
 import BirdSpawner from './BirdSpawner'
+import HaroldNPC   from './HaroldNPC'
 import { directionOffsets, footDepthZ } from '../hooks/spriteUtils'
 import grassUrl         from '../assets/svgs/grass.svg'
 import grass2Url        from '../assets/tiles/decor_grass_2.png'
@@ -34,7 +35,7 @@ import {
   AREA_W, AREA_H,
 } from '../worldConfig.js'
 import { useGrassPatches }  from '../hooks/useGrassPatches.js'
-import { useHareMovement }  from '../hooks/useHareMovement.js'
+import { usePetMovement }   from '../hooks/usePetMovement.js'
 import ThoughtBubble        from './ThoughtBubble.jsx'
 import campfireUrl          from '../assets/sounds/sfx/campfire.mp3'
 
@@ -160,7 +161,7 @@ export default function Pet({
 
   // ── Hare/Bubby movement ───────────────────────────────────────
   const greetArrivedRef = useRef(null)
-  const { petPos, direction, eatState, arrivedAtTree } = useHareMovement({
+  const { petPos, direction, eatState, arrivedAtTree } = usePetMovement({
     pet,
     unlockedAreas,
     visibleProps,
@@ -382,14 +383,14 @@ export default function Pet({
     y: petPos.y + GHOST_OFFSET_Y,
   }
 
-  // ── Bubby sprite computation ───────────────────────────────────
-  // While drinking, push Bubby in front of the well regardless of y position.
-  // well_0 displayH = 100, so +120 guarantees Bubby layers above it.
-  const bubbyZ = footDepthZ(petPos.y, BUBBY_PX, Z_BASE, eatState === 'drinking' ? 120 : 0)
-  let bubbySprite    = null
-  let bubbyCssClass  = 'bubby-cat'
-  let bubbyBgSize    = ''
-  let bubbyBgPosY    = '0px'
+  // ── Pet (cat) sprite computation ──────────────────────────────
+  // While drinking, push pet in front of the well regardless of y position.
+  // well_0 displayH = 100, so +120 guarantees pet layers above it.
+  const petZ = footDepthZ(petPos.y, BUBBY_PX, Z_BASE, eatState === 'drinking' ? 120 : 0)
+  let petSprite    = null
+  let petCssClass  = 'pet-cat'
+  let petBgSize    = ''
+  let petBgPosY    = '0px'
 
   if (petType === 'bubby') {
     const isRunning  = eatState === 'going' || eatState === 'going_water'
@@ -404,63 +405,63 @@ export default function Pet({
 
     if (eatState === 'celebrate_ball' && unlockedAnimations.includes('ball_roll')) {
       // Ball animation while stopped at celebrate waypoint (requires 'ball_roll' unlock)
-      bubbySprite    = catBall
-      bubbyCssClass += ' bubby-ball'
-      bubbyBgSize    = `${BUBBY_SZ.ball.w}px ${BUBBY_SZ.ball.h}px`
-      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+      petSprite    = catBall
+      petCssClass += ' pet-ball'
+      petBgSize    = `${BUBBY_SZ.ball.w}px ${BUBBY_SZ.ball.h}px`
+      petBgPosY    = `${BUBBY_EW_ROW[direction]}px`
     } else if (canPlaySpecial && catSpecialAnim === 'jump') {
-      bubbySprite    = catJump
-      bubbyCssClass += ' bubby-jump'
-      bubbyBgSize    = `${BUBBY_SZ.jump.w}px ${BUBBY_SZ.jump.h}px`
-      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+      petSprite    = catJump
+      petCssClass += ' pet-hop'
+      petBgSize    = `${BUBBY_SZ.jump.w}px ${BUBBY_SZ.jump.h}px`
+      petBgPosY    = `${BUBBY_EW_ROW[direction]}px`
     } else if (canPlaySpecial && catSpecialAnim === 'workout') {
-      // Dumbbell lift — shop unlock 'workout_lift'; plays 2× via bubby-workout CSS
-      bubbySprite    = catStand
-      bubbyCssClass += ' bubby-workout'
-      bubbyBgSize    = `${BUBBY_SZ.stand.w}px ${BUBBY_SZ.stand.h}px`
-      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+      // Dumbbell lift — shop unlock 'workout_lift'; plays 2× via pet-workout CSS
+      petSprite    = catStand
+      petCssClass += ' pet-workout'
+      petBgSize    = `${BUBBY_SZ.stand.w}px ${BUBBY_SZ.stand.h}px`
+      petBgPosY    = `${BUBBY_EW_ROW[direction]}px`
     } else if (canPlaySpecial && catSpecialAnim === 'scratch') {
       // Ear scratch — automatic idle; single row, no directional variant
-      bubbySprite    = catScratch
-      bubbyCssClass += ' bubby-scratch'
-      bubbyBgSize    = `${BUBBY_SZ.scratch.w}px ${BUBBY_SZ.scratch.h}px`
-      bubbyBgPosY    = '0px'
+      petSprite    = catScratch
+      petCssClass += ' pet-scratch'
+      petBgSize    = `${BUBBY_SZ.scratch.w}px ${BUBBY_SZ.scratch.h}px`
+      petBgPosY    = '0px'
     } else if (canPlaySpecial && catSpecialAnim === 'lick') {
-      bubbySprite    = catLick
-      bubbyCssClass += ' bubby-lick'
-      bubbyBgSize    = `${BUBBY_SZ.lick.w}px ${BUBBY_SZ.lick.h}px`
-      bubbyBgPosY    = '0px'
+      petSprite    = catLick
+      petCssClass += ' pet-lick'
+      petBgSize    = `${BUBBY_SZ.lick.w}px ${BUBBY_SZ.lick.h}px`
+      petBgPosY    = '0px'
     } else if (canPlaySpecial && catSpecialAnim === 'yawn') {
-      bubbySprite    = catYawn
-      bubbyCssClass += ' bubby-yawn'
-      bubbyBgSize    = `${BUBBY_SZ.yawn.w}px ${BUBBY_SZ.yawn.h}px`
-      bubbyBgPosY    = '0px'
+      petSprite    = catYawn
+      petCssClass += ' pet-yawn'
+      petBgSize    = `${BUBBY_SZ.yawn.w}px ${BUBBY_SZ.yawn.h}px`
+      petBgPosY    = '0px'
     } else if (isEating) {
-      bubbySprite    = catEat
-      bubbyCssClass += ' bubby-eat'
-      bubbyBgSize    = `${BUBBY_SZ.eat.w}px ${BUBBY_SZ.eat.h}px`
-      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+      petSprite    = catEat
+      petCssClass += ' pet-eat'
+      petBgSize    = `${BUBBY_SZ.eat.w}px ${BUBBY_SZ.eat.h}px`
+      petBgPosY    = `${BUBBY_EW_ROW[direction]}px`
     } else if (isDrinking) {
-      bubbySprite    = catDrink
-      bubbyCssClass += ' bubby-drink'
-      bubbyBgSize    = `${BUBBY_SZ.drink.w}px ${BUBBY_SZ.drink.h}px`
-      bubbyBgPosY    = '0px'
+      petSprite    = catDrink
+      petCssClass += ' pet-drink'
+      petBgSize    = `${BUBBY_SZ.drink.w}px ${BUBBY_SZ.drink.h}px`
+      petBgPosY    = '0px'
     } else if (isRunning) {
       // All purposeful running (including going_celebrate) shows run animation
-      bubbySprite    = catRun
-      bubbyCssClass += ' bubby-run'
-      bubbyBgSize    = `${BUBBY_SZ.run.w}px ${BUBBY_SZ.run.h}px`
-      bubbyBgPosY    = `${BUBBY_DIR_ROW[direction]}px`
+      petSprite    = catRun
+      petCssClass += ' pet-run'
+      petBgSize    = `${BUBBY_SZ.run.w}px ${BUBBY_SZ.run.h}px`
+      petBgPosY    = `${BUBBY_DIR_ROW[direction]}px`
     } else if (isResting) {
-      bubbySprite    = catSit
-      bubbyCssClass += ' bubby-sit'
-      bubbyBgSize    = `${BUBBY_SZ.sit.w}px ${BUBBY_SZ.sit.h}px`
-      bubbyBgPosY    = `${BUBBY_EW_ROW[direction]}px`
+      petSprite    = catSit
+      petCssClass += ' pet-sit'
+      petBgSize    = `${BUBBY_SZ.sit.w}px ${BUBBY_SZ.sit.h}px`
+      petBgPosY    = `${BUBBY_EW_ROW[direction]}px`
     } else {
-      bubbySprite    = catWalk
-      bubbyCssClass += ' bubby-walk'
-      bubbyBgSize    = `${BUBBY_SZ.walk.w}px ${BUBBY_SZ.walk.h}px`
-      bubbyBgPosY    = `${BUBBY_DIR_ROW[direction]}px`
+      petSprite    = catWalk
+      petCssClass += ' pet-walk'
+      petBgSize    = `${BUBBY_SZ.walk.w}px ${BUBBY_SZ.walk.h}px`
+      petBgPosY    = `${BUBBY_DIR_ROW[direction]}px`
     }
   }
 
@@ -533,19 +534,19 @@ export default function Pet({
       {/* Active pet — Harold (hare) or Bubby (cat) */}
       {petType === 'bubby' ? (
         <div
-          className={bubbyCssClass}
+          className={petCssClass}
           style={{
             position:          'absolute',
             left:              Math.round(petPos.x),
             top:               Math.round(petPos.y),
             width:             BUBBY_PX,
             height:            BUBBY_PX,
-            zIndex:            bubbyZ,
+            zIndex:            petZ,
             cursor:            'pointer',
             pointerEvents:     'auto',
-            backgroundImage:   bubbySprite ? `url(${bubbySprite})` : 'none',
-            backgroundSize:    bubbyBgSize,
-            backgroundPositionY: bubbyBgPosY,
+            backgroundImage:   petSprite ? `url(${petSprite})` : 'none',
+            backgroundSize:    petBgSize,
+            backgroundPositionY: petBgPosY,
             backgroundRepeat:  'no-repeat',
           }}
           onClick={() => { if (onPetClickRef.current) onPetClickRef.current() }}
@@ -652,7 +653,13 @@ export default function Pet({
       })()}
 
       {/* Ambient bird — must live here so position:absolute resolves against world-scene */}
-      <BirdSpawner worldWidth={1344} />
+      <BirdSpawner worldWidth={1344} bubbyPos={petPos} />
+
+      {/* Harold NPC — appears once all 9 areas are unlocked */}
+      <HaroldNPC
+        allAreasUnlocked={unlockedAreas.length >= 9}
+        visibleProps={visibleProps ?? []}
+      />
 
       {/* Scene edge vignette — subtle darkness around map perimeter for focus */}
       <div className="scene-vignette" aria-hidden="true" />

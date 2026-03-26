@@ -77,9 +77,7 @@ function Game({ user }) {
   const [pet, setPet]                   = useState(DEFAULT_PET)
   const [petKey, setPetKey]             = useState(0)   // increment → forces Pet remount → respawn at SPAWN_X/Y
   const [loading, setLoading]           = useState(true)
-  const [activePet, setActivePet]       = useState(() =>
-    localStorage.getItem('activePet') || 'harold'
-  )
+  const [activePet]                     = useState('bubby')
   const [showActions, setShowActions]   = useState(false)
   const [showActivity, setShowActivity] = useState(false)
   const [hasInteracted, setHasInteracted] = useState(false)
@@ -123,6 +121,10 @@ function Game({ user }) {
   const [isPomodoroActive, setIsPomodoroActive]  = useState(false)
   const hasShownLoginThoughtRef = useRef(false)
   const prevMoodRef             = useRef(null)
+
+  // ── Rapid-click detection ─────────────────────────────────────
+  const clickCountRef   = useRef(0)
+  const clickTimerRef   = useRef(null)
 
   // ── Sound manager ─────────────────────────────────────────────
   const { play, stop } = useSoundManager()
@@ -472,11 +474,23 @@ function Game({ user }) {
     setIsLevelingUp(false)
   }
 
-  // Called when user clicks the hare — show level popup & pause movement
+  // Called when user clicks Bubby — show level popup & pause movement.
+  // Rapid clicks (≥ 3 within 1.5 s) trigger an annoyed thought bubble.
   const handlePetClick = () => {
-    if (activePet === 'bubby') play('meow')
-    else play('click')
-    setShowLevelPopup(true)
+    play('meow')
+
+    clickCountRef.current += 1
+    clearTimeout(clickTimerRef.current)
+
+    if (clickCountRef.current >= 3) {
+      triggerThought('Stopppppppp 😾')
+      clickCountRef.current = 0
+    } else {
+      clickTimerRef.current = setTimeout(() => {
+        clickCountRef.current = 0
+      }, 1500)
+      setShowLevelPopup(true)
+    }
   }
 
   const closeLevelPopup = () => {
@@ -608,7 +622,7 @@ function Game({ user }) {
         coins: increment(-item.cost),
         ...itemUpdate,
         activities: arrayUnion({
-          text: `${userName} unlocked ${item.name} for Harold! 🛍`,
+          text: `${userName} unlocked ${item.name} for Bubby! 🛍`,
           user: userName,
           timestamp: new Date().toISOString()
         })
@@ -796,7 +810,7 @@ function Game({ user }) {
   if (loading) {
     return (
       <div className="loading-screen">
-        <p className="loading-text">Finding Harold...</p>
+        <p className="loading-text">Finding Bubby...</p>
       </div>
     )
   }
@@ -831,13 +845,6 @@ function Game({ user }) {
           <span className="user-badge">
             {userName === 'Varun' ? '💙' : userName === 'Leena' ? '💖' : '🧪'} {userName}
           </span>
-          <button
-            className="pet-toggle-btn"
-            onClick={() => setActivePet(p => p === 'harold' ? 'bubby' : 'harold')}
-            title="Switch active pet"
-          >
-            {activePet === 'harold' ? '🐱 Play as Bubby' : '🐰 Play as Harold'}
-          </button>
           <button
             className="music-toggle-btn"
             onClick={toggleMusic}
@@ -929,12 +936,12 @@ function Game({ user }) {
           </div>
           <div className="mood-badge">
             <span className="mood-badge-emoji">{moodEmoji}</span>
-            <span className="mood-badge-label">{moodLabel}</span>
+            <span className="mood-badge-label">Bubby feels {moodLabel}</span>
           </div>
 
           <div className="actions-section">
             <button className="actions-toggle-btn" onClick={() => { play('toggle'); setShowActions(s => !s) }}>
-              {showActions ? '▲ Close' : '🎮 Interact with Harold'}
+              {showActions ? '▲ Close' : 'Interact with Bubby'}
             </button>
             {showActions && (
               <div className="actions-container">
@@ -1026,8 +1033,8 @@ function Game({ user }) {
       {showStretchPopup && (
         <div className="stretch-overlay" onClick={() => setShowStretchPopup(false)}>
           <div className="stretch-modal" onClick={e => e.stopPropagation()}>
-            <div className="stretch-harold">🐰</div>
-            <h3 className="stretch-title">Harold wants to stretch!</h3>
+            <div className="stretch-harold">🐱</div>
+            <h3 className="stretch-title">Bubby wants to stretch!</h3>
             <p className="stretch-body">Did you stand up and take a breather?</p>
             <div className="stretch-actions">
               <button className="stretch-btn stretch-yes" onClick={handleStretchYes}>

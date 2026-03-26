@@ -18,8 +18,8 @@ import birdPerchUrl   from '../assets/sprites/bird/bird_perch.png'
 import './BirdSpawner.css'
 
 const BIRD_SIZE  = 56        // native px per frame
-const BIRD_SCALE = 1.5       // render at 84×84
-const BIRD_PX    = BIRD_SIZE * BIRD_SCALE   // 84
+const BIRD_SCALE = 1.0       // render at 56×56
+const BIRD_PX    = BIRD_SIZE * BIRD_SCALE   // 56
 
 const FLY_PX_S   = 180       // flight speed px/s
 
@@ -38,7 +38,9 @@ const PERCH_MAX_MS  = 20_000
 const SPAWN_MIN_MS  = 40_000
 const SPAWN_MAX_MS  = 90_000
 
-export default function BirdSpawner({ worldWidth = 1344 }) {
+const SPOOK_DIST = 90  // px — how close Bubby needs to be to startle Robin
+
+export default function BirdSpawner({ worldWidth = 1344, bubbyPos = null }) {
   const [bird, setBird]   = useState(null)
   const spawnRef          = useRef(null)
   const phaseRef          = useRef(null)
@@ -104,6 +106,20 @@ export default function BirdSpawner({ worldWidth = 1344 }) {
       }, bird.flyOutDurS * 1000)
     }
   }, [bird?.phase, scheduleSpawn])
+
+  // Spook Robin if Bubby wanders too close while perching
+  useEffect(() => {
+    if (!bird || bird.phase !== 'perching' || !bubbyPos) return
+    const birdCx = bird.perchX + BIRD_PX / 2
+    const birdCy = bird.perchY + BIRD_PX / 2
+    const bubbyCx = bubbyPos.x + 40  // 80px bubby, center offset
+    const bubbyCy = bubbyPos.y + 40
+    const dist = Math.hypot(bubbyCx - birdCx, bubbyCy - birdCy)
+    if (dist < SPOOK_DIST) {
+      clearTimeout(phaseRef.current)
+      setBird(b => b ? { ...b, phase: 'flying_out' } : null)
+    }
+  }, [bird, bubbyPos])
 
   if (!bird) return null
 

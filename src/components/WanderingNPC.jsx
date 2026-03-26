@@ -48,7 +48,7 @@ import {
   getAreaAtPoint,
 } from '../worldConfig.js'
 import { WORLD_PROPS } from '../worldData.js'
-import { randomWanderTarget } from '../hooks/useHareMovement.js'
+import { randomWanderTarget } from '../hooks/usePetMovement.js'
 import { footDepthZ } from '../hooks/spriteUtils.js'
 
 // ── Module-level spawn helper ──────────────────────────────────

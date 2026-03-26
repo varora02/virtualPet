@@ -1,4 +1,4 @@
-/* ── BubbyCat — Bubby the tuxedo cat (player pet) ─────────────────
+/* ── pet (tuxedo cat) ───────────────────────────────────────────────────────
    Native sprite size: 56px  |  Display size: 80px  (SCALE = 80/56 ≈ 1.43×)
    All background-size values are set via inline styles in Pet.jsx.
    These classes only drive the animation keyframes.
@@ -8,7 +8,7 @@
      Use steps(N-1) from 0 to -(N-1)*80px  →  forwards holds at last frame (not past it).
    ────────────────────────────────────────────────────────────────── */
 
-.bubby-cat {
+.pet-cat {
   position:          absolute;
   image-rendering:   pixelated;
   image-rendering:   crisp-edges;
@@ -21,106 +21,106 @@
 }
 
 /* ── Walk: 8 frames, 4-direction sheet — slowed for a casual stroll ── */
-.bubby-walk {
-  animation: bubby-walk 1.0s steps(8) infinite;
+.pet-walk {
+  animation: pet-walk 1.0s steps(8) infinite;
 }
-@keyframes bubby-walk {
+@keyframes pet-walk {
   from { background-position-x: 0; }
   to   { background-position-x: -640px; }
 }
 
 /* ── Run: 6 frames → 480px, 4-direction sheet ── */
-.bubby-run {
-  animation: bubby-run 0.42s steps(6) infinite;
+.pet-run {
+  animation: pet-run 0.42s steps(6) infinite;
 }
-@keyframes bubby-run {
+@keyframes pet-run {
   from { background-position-x: 0; }
   to   { background-position-x: -480px; }
 }
 
 /* ── Eat: 7 frames — loops while in eating state ── */
-.bubby-eat {
-  animation: bubby-eat 0.98s steps(7) infinite;
+.pet-eat {
+  animation: pet-eat 0.98s steps(7) infinite;
 }
-@keyframes bubby-eat {
+@keyframes pet-eat {
   from { background-position-x: 0; }
   to   { background-position-x: -560px; }
 }
 
 /* ── Drink: 6 frames — loops while in drinking state ── */
-.bubby-drink {
-  animation: bubby-drink 0.84s steps(6) infinite;
+.pet-drink {
+  animation: pet-drink 0.84s steps(6) infinite;
 }
-@keyframes bubby-drink {
+@keyframes pet-drink {
   from { background-position-x: 0; }
   to   { background-position-x: -480px; }
 }
 
 /* ── Sit: 8 frames — plays once, holds on seated pose (frame 7 = -560px) ── */
-.bubby-sit {
-  animation: bubby-sit 1.12s steps(7) 1 forwards;
+.pet-sit {
+  animation: pet-sit 1.12s steps(7) 1 forwards;
 }
-@keyframes bubby-sit {
+@keyframes pet-sit {
   from { background-position-x: 0; }
   to   { background-position-x: -560px; }
 }
 
 /* ── Lick: 12 frames — plays once, holds on last frame (-880px = frame 11) ── */
-.bubby-lick {
-  animation: bubby-lick 1.54s steps(11) 1 forwards;
+.pet-lick {
+  animation: pet-lick 1.54s steps(11) 1 forwards;
 }
-@keyframes bubby-lick {
+@keyframes pet-lick {
   from { background-position-x: 0; }
   to   { background-position-x: -880px; }
 }
 
 /* ── Yawn: 11 frames — plays once, holds on last frame (-800px = frame 10) ── */
-.bubby-yawn {
-  animation: bubby-yawn 1.4s steps(10) 1 forwards;
+.pet-yawn {
+  animation: pet-yawn 1.4s steps(10) 1 forwards;
 }
-@keyframes bubby-yawn {
+@keyframes pet-yawn {
   from { background-position-x: 0; }
   to   { background-position-x: -800px; }
 }
 
-/* ── Jump: 8 frames — plays once, holds on last frame (-560px = frame 7) ── */
-.bubby-jump {
-  animation: bubby-jump 1.12s steps(7) 1 forwards;
+/* ── Hop: 8 frames — plays once, holds on last frame (-560px = frame 7) ── */
+.pet-hop {
+  animation: pet-hop 1.12s steps(7) 1 forwards;
 }
-@keyframes bubby-jump {
+@keyframes pet-hop {
   from { background-position-x: 0; }
   to   { background-position-x: -560px; }
 }
 
 /* ── Ball: 9 frames — loops while playing with red ball (celebrate phase) ── */
-.bubby-ball {
-  animation: bubby-ball 1.5s steps(9) infinite;
+.pet-ball {
+  animation: pet-ball 1.5s steps(9) infinite;
 }
-@keyframes bubby-ball {
+@keyframes pet-ball {
   from { background-position-x: 0; }
   to   { background-position-x: -720px; }
 }
 
 /* ── Scratch: 8 frames (32px native → 640×80 displayed) — plays once ── */
 /* cat_idle.png: ear-scratch with hind paw while seated                  */
-.bubby-scratch {
-  animation: bubby-scratch 0.88s steps(8) 1 forwards;
+.pet-scratch {
+  animation: pet-scratch 0.88s steps(8) 1 forwards;
 }
-@keyframes bubby-scratch {
+@keyframes pet-scratch {
   from { background-position-x: 0; }
   to   { background-position-x: -640px; }
 }
 
 /* ── Stand / Dumbbell lift: 9 frames — shared keyframes ─────────────── */
-/* .bubby-stand: plays once (debug / future use)                          */
-/* .bubby-workout: plays TWICE — shop unlock 'workout_lift'               */
-.bubby-stand {
-  animation: bubby-stand 1.26s steps(8) 1 forwards;
+/* .pet-stand: plays once (debug / future use)                            */
+/* .pet-workout: plays TWICE — shop unlock 'workout_lift'                 */
+.pet-stand {
+  animation: pet-stand 1.26s steps(8) 1 forwards;
 }
-.bubby-workout {
-  animation: bubby-stand 1.26s steps(8) 2 forwards;
+.pet-workout {
+  animation: pet-stand 1.26s steps(8) 2 forwards;
 }
-@keyframes bubby-stand {
+@keyframes pet-stand {
   from { background-position-x: 0; }
   to   { background-position-x: -640px; }
 }

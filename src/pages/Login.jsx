@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase'
-import haroldUrl from '../assets/svgs/rompy.svg'
+import bubbySitUrl from '../assets/sprites/cat_sit.png'
 
 function Login() {
   const [email, setEmail] = useState('')
@@ -25,7 +25,13 @@ function Login() {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.elephantWrap}>
-          <img src={haroldUrl} alt="Harold" style={{ width: 120, height: 120, objectFit: 'contain' }} />
+          <div style={{ width: 112, height: 112, overflow: 'hidden', imageRendering: 'pixelated' }}>
+            <img
+              src={bubbySitUrl}
+              alt="Bubby"
+              style={{ width: 448, height: 112, objectFit: 'none', objectPosition: '0 0', display: 'block' }}
+            />
+          </div>
         </div>
         <h1 style={styles.title}>Harold</h1>
 
@@ -79,6 +85,7 @@ const styles = {
     display: 'flex',
     justifyContent: 'center',
     marginBottom: '10px',
+    filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.15))',
   },
   title: {
     fontSize: '2.2rem',

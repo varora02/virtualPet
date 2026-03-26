@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { signOut } from 'firebase/auth'
-import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, serverTimestamp } from 'firebase/firestore'
+import { doc, onSnapshot, setDoc, updateDoc, arrayUnion, serverTimestamp, increment } from 'firebase/firestore'
 import { auth, db } from '../firebase'
 import Pet from '../components/Pet'
 import PomodoroTimer from '../components/PomodoroTimer'
@@ -71,7 +71,8 @@ const DEFAULT_PET = {
 function Game({ user }) {
   const _saved = loadProgression()
   // Area 0 (BL) always starts at tier 1; player upgrades it before unlocking area 1
-  const [areaTiers, setAreaTiers] = useState(_saved?.areaTiers ?? { 0: 1 })
+  // areaTiers is now sourced from Firestore (shared-pet.areaTiers) — loaded in onSnapshot below
+  const [areaTiers, setAreaTiers] = useState({ 0: 1 })
 
   const [pet, setPet]                   = useState(DEFAULT_PET)
   const [petKey, setPetKey]             = useState(0)   // increment → forces Pet remount → respawn at SPAWN_X/Y
@@ -160,14 +161,15 @@ function Game({ user }) {
   // ── "While you were away" notification banner ─────────────────
   const [notifBanner, setNotifBanner]   = useState(null)  // null or string message
 
-  // ── Persist local progression to localStorage ─────────────────
+  // ── Persist activePet preference to localStorage only ─────────
+  // areaTiers now live in Firestore (shared-pet.areaTiers) so both users see the same state.
   useEffect(() => {
+    // Keep coins/unlockedAreas as a fast-load cache only — source of truth is Firestore
     localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      areaTiers,
       unlockedAreas: pet.unlockedAreas || [0],
       coins: pet.coins || 0,
     }))
-  }, [areaTiers, pet.unlockedAreas, pet.coins])
+  }, [pet.unlockedAreas, pet.coins])
 
   const userName = user.email.includes('varun') ? 'Varun'
                  : user.email.includes('leena') ? 'Leena'
@@ -223,6 +225,11 @@ function Game({ user }) {
           data.name = 'Harold'
         }
         setPet({ ...DEFAULT_PET, ...data })
+
+        // Sync areaTiers from Firestore so both users share the same tier state
+        if (data.areaTiers) {
+          setAreaTiers(data.areaTiers)
+        }
 
         // "While you were away" — check once on first load
         if (!hasCheckedNotif.current) {
@@ -344,7 +351,7 @@ function Game({ user }) {
     const activity = { text: activityText, user: userName, timestamp: new Date().toISOString() }
     try {
       const coinUpdates = coinDelta !== 0
-        ? { coins: Math.max(0, (pet.coins || 0) + coinDelta) }
+        ? { coins: increment(coinDelta) }
         : {}
       await updateDoc(petRef, { ...updates, ...coinUpdates, activities: arrayUnion(activity), lastInteraction: new Date().toISOString() })
     } catch (err) {
@@ -598,7 +605,7 @@ function Game({ user }) {
         ? { unlockedAreas: arrayUnion(areaId) }
         : { ownedItems: arrayUnion(itemId) }
       await updateDoc(petRef, {
-        coins: (pet.coins || 0) - item.cost,
+        coins: increment(-item.cost),
         ...itemUpdate,
         activities: arrayUnion({
           text: `${userName} unlocked ${item.name} for Harold! 🛍`,
@@ -622,7 +629,7 @@ function Game({ user }) {
     const petRef = doc(db, 'pets', 'shared-pet')
     try {
       await updateDoc(petRef, {
-        coins: (pet.coins || 0) - anim.cost,
+        coins: increment(-anim.cost),
         unlockedAnimations: arrayUnion(animId),
         activities: arrayUnion({
           text: `${userName} unlocked ${anim.name} for Bubby! 🎉`,
@@ -694,7 +701,7 @@ function Game({ user }) {
           ? `${userName} unlocked the world path! 🛤️`
           : `${userName} upgraded area ${next.areaId} to tier ${next.toTier}! ⭐`
       await updateDoc(petRef, {
-        coins: (pet.coins || 0) - next.cost,
+        coins: increment(-next.cost),
         ...areaUpdate,
         activities: arrayUnion({ text: activityText, user: userName, timestamp: new Date().toISOString() })
       })
@@ -702,11 +709,15 @@ function Game({ user }) {
       play('unlock_area')
       setLastPurchase(Date.now())
       if (next.type === 'unlock') {
-        setAreaTiers(prev => ({ ...prev, [next.areaId]: 1 }))
-        pendingFlashAreaRef.current = next.areaId   // fires when shop closes
+        const newTiers = { ...areaTiers, [next.areaId]: 1 }
+        setAreaTiers(newTiers)
+        updateDoc(petRef, { areaTiers: newTiers })
+        pendingFlashAreaRef.current = next.areaId
       } else if (next.type === 'tier') {
-        setAreaTiers(prev => ({ ...prev, [next.areaId]: next.toTier }))
-        pendingFlashAreaRef.current = next.areaId   // fires when shop closes
+        const newTiers = { ...areaTiers, [next.areaId]: next.toTier }
+        setAreaTiers(newTiers)
+        updateDoc(petRef, { areaTiers: newTiers })
+        pendingFlashAreaRef.current = next.areaId
       }
       // path: pathUnlocked derives from areaTiers in Firestore; pet state will update via onSnapshot
     } catch (err) {

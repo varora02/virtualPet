@@ -141,6 +141,7 @@ export default function Pet({
   thoughtBubble      = null,     // { message: string } | null — shows a thought bubble above the pet
   unlockedAnimations = [],       // animation IDs unlocked in shop: 'ball_roll', 'workout_lift', 'happy_hop'
   workoutTrigger     = 0,        // increment to play dumbbell-lift animation (requires 'workout_lift' unlock)
+  scaredTrigger      = 0,        // increment to make Bubby run away (rapid-click reaction)
 }) {
   const [isNight, setIsNight] = useState(checkIsNight)
   const onPetClickRef         = useRef(onPetClick)
@@ -174,6 +175,7 @@ export default function Pet({
     studyStopTrigger,
     celebrateTrigger,
     greetTrigger:    petType === 'bubby' ? greetTrigger : 0,
+    scaredTrigger:   petType === 'bubby' ? scaredTrigger : 0,
     onGreetArrived:  () => { if (greetArrivedRef.current) greetArrivedRef.current() },
     wellYOffset:     petType === 'bubby' ? -32 : 0,
     catAnimFreezeRef,
@@ -274,10 +276,15 @@ export default function Pet({
         // Double-check we're still still before playing
         const cur = eatStateRefLocal.current
         if (cur !== 'idle' && cur !== 'resting') { schedule(); return }
-        const r    = Math.random()
-        const pick = r < 0.5 ? 'lick' : r < 0.8 ? 'yawn' : 'scratch'
-        // lick: 12fr×140ms=1680ms  yawn: 11fr×140ms=1540ms  scratch: 8fr×110ms=880ms
-        const dur  = pick === 'lick' ? 1680 : pick === 'yawn' ? 1540 : 880
+        const r = Math.random()
+        // When energy is low (sleepy), yawn probability jumps to 50% so Bubby
+        // visibly shows he's tired. Otherwise: lick 50%, yawn 30%, scratch 20%.
+        const isSleepy = pet.energy < 30
+        const pick = isSleepy
+          ? (r < 0.50 ? 'yawn' : r < 0.80 ? 'lick' : 'scratch')
+          : (r < 0.5  ? 'lick' : r < 0.80 ? 'yawn' : 'scratch')
+        // lick: 12fr×140ms=1680ms  yawn: 11fr×240ms=2640ms (slowed)  scratch: 8fr×110ms=880ms
+        const dur  = pick === 'lick' ? 1680 : pick === 'yawn' ? 2640 : 880
         if (pick === 'lick') catAnimFreezeRef.current = true
         setCatSpecialAnim(pick)
         catInnerTimerRef.current = setTimeout(() => {

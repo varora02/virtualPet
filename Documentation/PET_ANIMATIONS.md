@@ -44,7 +44,7 @@ When Ghost Bud is active, a translucent copy of Bubby follows 90px right and 10p
 
 ## Blue Robin (Ambient Bird)
 
-Managed by `BirdSpawner.jsx`. Source frames: 56×56 px. Display: 84×84 px (1.5× scale).
+Managed by `BirdSpawner.jsx`. Source frames: 56×56 px. Display: 62×62 px (1.1× scale).
 
 | Animation | File | Frames | CSS Class | Timing |
 |-----------|------|--------|-----------|--------|
@@ -54,7 +54,7 @@ Managed by `BirdSpawner.jsx`. Source frames: 56×56 px. Display: 84×84 px (1.5�
 
 **Phase machine:** `appear → flying_in → perching → flying_out → (cooldown) → repeat`
 
-Robin spooks and flies off when Bubby approaches within 90px.
+Robin spooks and flies off when Bubby approaches within 90px. Also spooked by Harold within 120px.
 
 ---
 
@@ -135,27 +135,52 @@ Active study timing: x-animation cycles 6 frames over 6s; y-animation alternates
 
 ---
 
-## Harold ↔ Bubby Interaction Ideas
+## Bubby + Rompy — Shared Study Session
 
-These are planned interactions to make the world feel alive. No sprites confirmed yet — noting here for future implementation.
+The shared study session is the primary multiplayer moment. When both users are in an active session together, Rompy appears near Bubby and they study side by side. These interactions are tied to the Firestore-driven shared timer (see `Documentation/IMPLEMENTATION.md`).
+
+### Session States
+| State | Bubby | Rompy |
+|-------|-------|-------|
+| Solo session (Varun only) | Walks to tree → study animation | Absent |
+| Partner joins | Greet animation briefly, then back to study | Appears near well → study animation |
+| Both studying | Study loop | Study loop |
+| Session complete | Celebration run | Brief celebration, then fades out |
+| Partner drops off | Returns to normal solo study | Fades out |
+
+### Shared Session Visual Flow
+1. Varun starts session → Bubby walks to tree and opens book
+2. Leena joins → banner on Varun's screen: "💖 Leena joined the session!" → Bubby does a quick greet animation, then resumes study
+3. Rompy materialises near the well (placeholder ghost until Rompy sprite is ready)
+4. Both in study loop for 25 min
+5. Timer ends → both pets celebrate simultaneously (Bubby victory lap, Rompy wave)
+6. +bonus 10 coins awarded to the shared session, on top of normal session reward
+
+### Rompy Sprite Needed (for full implementation)
+- `rompy_study.png` — Rompy sitting with a book, 4–6 frame loop (appears during shared session)
+- `rompy_celebrate.png` — wave or jump, 4–6 frames (plays on session complete)
+- `rompy_idle.png` — simple breathing idle while waiting between sessions
+- Until sprites are ready: ghost placeholder div with "📖 Rompy is studying..." label
+
+---
+
+## Harold ↔ Bubby NPC Interactions
+
+These are ambient world interactions — Harold is a wandering NPC (not user-controlled), so these fire automatically based on proximity. No sprites confirmed yet.
 
 ### Proximity Reactions (passive, no new sprites needed)
-- **Bubby approaches Harold eating** — Harold pauses mid-chew, ears perk up (could be a 1-frame hold), then resumes after Bubby passes. Simple state check, no new sprite.
-- **Harold startles Robin** — if Harold wanders too close to Robin's perch point, Robin spooks and flies off (same logic as Bubby's spook radius, but triggered by Harold's position too).
+- **Bubby approaches Harold eating** — Harold pauses mid-chew, ears perk up (1-frame hold), then resumes after Bubby passes. Simple state check, no new sprite.
+- **Harold startles Robin** — if Harold wanders within 120px of Robin's perch, Robin spooks and flies off (same `flying_out` logic as Bubby's proximity check).
 - **Both at well at same time** — if Bubby arrives at the well while Harold is drinking, Bubby sits and waits, then drinks after Harold finishes. Queue logic.
 
-### Greeting Animations (need sprites or can be CSS)
-- **First meeting of the day** — when Bubby and Harold get within 60px for the first time since login, both face each other briefly (direction swap). Could use existing idle sprites, just timed facing.
-- **Bubby bops Harold** — tap Harold → Bubby does a small hop (`pet-hop`) and Harold does a brief `hare-state-rest` (surprised idle). No damage, just playful.
+### Greeting Animations (reuse existing sprites)
+- **First proximity of the session** — when Bubby and Harold get within 60px for the first time since login, both briefly face each other (direction swap on Harold). Uses existing idle sprites with timed facing change.
+- **Bubby bops Harold** — tap Harold NPC → Bubby does a small hop (`pet-hop`) and Harold plays `hare-state-rest` (surprised idle pause). No damage, just playful.
 
-### Shared Activities (longer-term, needs sprites)
-- **Synchronized rest** — if both are near a tree at the same time, they both play rest animations side by side.
-- **Harold brings Bubby a gift** — Harold occasionally pathfinds to Bubby and "drops" a coin (+1 coin for the player), then trots away. Uses run sprite, no new animation.
-- **Chase** — low probability event: Harold runs in a wide arc around Bubby for 3–5s, Bubby tracks Harold with idle facing. Uses existing run sprite.
-
-### Seasonal / Milestone (future)
-- **Level-up celebration** — when Bubby levels up, Harold does a `hare-state-rest hare-levelup` flash from wherever he is in the world, as if cheering.
-- **Workout together** — if both users log a workout in the same day, Harold and Bubby do their workout animations simultaneously for 3s.
+### Shared Activities (longer-term)
+- **Synchronized rest** — if both end up near the same tree, they both play rest animations side by side.
+- **Harold brings a coin** — rare event: Harold pathfinds toward Bubby and "drops" a coin (+1 coin). Uses existing run sprite, no new animation needed.
+- **Harold cheers on level-up** — when Bubby levels up, Harold does a `hare-levelup` flash from wherever he is, as if cheering.
 
 ---
 

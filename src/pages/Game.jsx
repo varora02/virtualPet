@@ -118,6 +118,11 @@ function Game({ user }) {
   // ── Mood system state ─────────────────────────────────────────
   const [lastLevelUp,      setLastLevelUp]      = useState(null)   // Date.now() on level-up
   const [lastPurchase,     setLastPurchase]      = useState(null)   // Date.now() on shop purchase
+  const [scaredTrigger,    setScaredTrigger]    = useState(0)      // rapid-click → Bubby runs away
+
+  // ── Shared study session ──────────────────────────────────────
+  const [activeSession,  setActiveSession]  = useState(null)   // from Firestore shared-pet.activeSession
+  const [showJoinBanner, setShowJoinBanner] = useState(false)  // "Partner is studying!" prompt
   const [isPomodoroActive, setIsPomodoroActive]  = useState(false)
   const hasShownLoginThoughtRef = useRef(false)
   const prevMoodRef             = useRef(null)
@@ -233,6 +238,29 @@ function Game({ user }) {
           setAreaTiers(data.areaTiers)
         }
 
+        // Sync shared study session; auto-expire if older than the full session duration
+        let session = data.activeSession ?? null
+        if (session && session.status === 'running' && session.startedAt?.toMillis) {
+          const elapsedMin = (Date.now() - session.startedAt.toMillis()) / 60000
+          if (elapsedMin > (session.durationMin || 25) + 1) {
+            // Session ran past its duration without completing — clear it
+            updateDoc(doc(db, 'pets', 'shared-pet'), { activeSession: null }).catch(console.error)
+            session = null
+          }
+        }
+        setActiveSession(session)
+        // Show join banner when partner has a live session and we haven't joined yet
+        if (
+          session &&
+          session.status === 'running' &&
+          session.startedBy !== userName &&
+          !(session.participants ?? []).includes(userName)
+        ) {
+          setShowJoinBanner(true)
+        } else {
+          setShowJoinBanner(false)
+        }
+
         // "While you were away" — check once on first load
         if (!hasCheckedNotif.current) {
           hasCheckedNotif.current = true
@@ -320,7 +348,7 @@ function Game({ user }) {
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
         checkAndShowNotif(petRef.current)
-        // Bubby runs to center of her area and licks her paw as a greeting
+        // Bubby runs to center of his area and licks his paw as a greeting
         if (activePetRef.current === 'bubby') {
           setGreetTrigger(n => n + 1)
         }
@@ -483,7 +511,8 @@ function Game({ user }) {
     clearTimeout(clickTimerRef.current)
 
     if (clickCountRef.current >= 3) {
-      triggerThought('Stopppppppp 😾')
+      triggerThought('Stopppppppp')
+      setScaredTrigger(n => n + 1)
       clickCountRef.current = 0
     } else {
       clickTimerRef.current = setTimeout(() => {
@@ -554,6 +583,27 @@ function Game({ user }) {
     setIsPomodoroActive(false)
     studyStartedRef.current = false
     setStudyStopTrigger(n => n + 1)   // hare returns to idle wander
+  }
+
+  // ── Join a partner's active study session ────────────────────
+  const handleJoinSession = async () => {
+    if (!activeSession) return
+    setShowJoinBanner(false)
+    const petRef = doc(db, 'pets', 'shared-pet')
+    await updateDoc(petRef, {
+      'activeSession.participants': arrayUnion(userName)
+    }).catch(console.error)
+    // Bubby walks to tree and starts studying
+    handleStudyStart()
+  }
+
+  // ── Partner session complete → flat coin bonus (no double XP) ─
+  const handlePartnerSessionComplete = () => {
+    updatePet(
+      {},
+      `${userName} completed a shared study session with ${activeSession?.startedBy ?? 'partner'}! +10 🪙`,
+      10
+    )
   }
 
   const handleStretchYes = () => {
@@ -838,7 +888,7 @@ function Game({ user }) {
 
       {/* Header */}
       <header className="game-header">
-        <h1 className="game-title">Virtual Pet v1</h1>
+        <h1 className="game-title">My Virtual Pet</h1>
         <div className="header-right">
           <span className="coin-badge">🪙 {pet.coins || 0}</span>
           <span className="streak-badge" title="Login streak">🔥 {pet.loginStreak || 0}</span>
@@ -883,6 +933,17 @@ function Game({ user }) {
         </div>
       )}
 
+      {/* Join session banner — appears when partner starts a session */}
+      {showJoinBanner && activeSession && (
+        <div className="join-session-banner" role="status">
+          <span className="join-session-msg">
+            💖 {activeSession.startedBy} is studying! Join the session?
+          </span>
+          <button className="join-session-btn" onClick={handleJoinSession}>Join</button>
+          <button className="join-session-dismiss" onClick={() => setShowJoinBanner(false)}>✕</button>
+        </div>
+      )}
+
       {/* World — constrained + centered */}
       <div className="world-full">
         <Pet
@@ -920,7 +981,28 @@ function Game({ user }) {
           workoutTrigger={workoutTrigger}
           thoughtBubble={thoughtBubble}
           unlockedAnimations={pet.unlockedAnimations || []}
+          scaredTrigger={scaredTrigger}
         />
+
+        {/* Rompy placeholder — appears during shared study sessions (replace with sprite later) */}
+        {activeSession && (activeSession.participants?.length ?? 0) >= 2 && (
+          <div style={{
+            position: 'absolute',
+            left: 610, top: 185,
+            display: 'flex', flexDirection: 'column', alignItems: 'center',
+            pointerEvents: 'none',
+            animation: 'rompy-float 3s ease-in-out infinite',
+          }}>
+            <div style={{ fontSize: 32, filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.2))' }}>🐘</div>
+            <div style={{
+              fontSize: '0.6rem', fontWeight: 700, color: '#7E6BAD',
+              background: 'rgba(255,255,255,0.85)', borderRadius: 6,
+              padding: '2px 6px', marginTop: 2,
+            }}>
+              📖 Rompy
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom panels */}
@@ -1003,8 +1085,11 @@ function Game({ user }) {
         {/* Right: Pomodoro + Activity toggle */}
         <div className="right-panel">
           <PomodoroTimer
-            onComplete={onPomodoroComplete}
+            db={db}
             userName={userName}
+            activeSession={activeSession}
+            onComplete={onPomodoroComplete}
+            onPartnerComplete={handlePartnerSessionComplete}
             onStudyStart={handleStudyStart}
             onStudyPause={handleStudyPause}
             onStudyStop={handleStudyStop}

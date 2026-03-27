@@ -619,12 +619,12 @@ export const WORLD_PROPS = [
   // lamp_6: TL area (6), relY=0.55, clear of path row 1.
   { id: 'lamp_1', type: 'lamp1',
     areaId: 5, tier: 1, ...pos(5, 0.06, 0.20),
-    displayW: 40, displayH: 70, collisionR: 0,
+    displayW: 44, displayH: 77, collisionR: 0,
     emitsLight: true, glowRadius: 90, glowOffsetY: 0.12 },
 
   { id: 'lamp_6', type: 'lamp1',
     areaId: 6, tier: 1, ...pos(6, 0.65, 0.55),
-    displayW: 40, displayH: 70, collisionR: 0,
+    displayW: 44, displayH: 77, collisionR: 0,
     emitsLight: true, glowRadius: 90, glowOffsetY: 0.12 },
 
   // ── Rocks — decorative scatter (no collision — pet walks through freely) ──
@@ -632,7 +632,7 @@ export const WORLD_PROPS = [
   { id: 'rock_1', type: 'rock_03', areaId: 1, tier: 1, ...pos(1, 0.76, 0.63), displayW: 50, displayH: 30, collisionR: 0 },
   { id: 'rock_2', type: 'rock_01', areaId: 2, tier: 1, ...pos(2, 0.08, 0.70), displayW: 60, displayH: 50, collisionR: 0 },
   { id: 'rock_3', type: 'rock_03', areaId: 4, tier: 1, ...pos(4, 0.78, 0.70), displayW: 50, displayH: 30, collisionR: 0 },
-  { id: 'rock_4', type: 'rock_01', areaId: 6, tier: 1, ...pos(6, 0.73, 0.66), displayW: 60, displayH: 50, collisionR: 0 },
+  // rock_4 (TL area 6) removed — was sitting on the road
 
   // ══════════════════════════════════════════════════════════
   // ──  TIER 1 DECORATIONS (Upper Areas) ────────────────────
@@ -690,7 +690,7 @@ export const WORLD_PROPS = [
   // left edge, and relY=0.18 so its base sits at roughly 1/3 down the well.
   { id: 'lamp_2', type: 'lamp1',
     areaId: 0, tier: 2, ...pos(0, 0.68, 0.18),
-    displayW: 40, displayH: 70, collisionR: 0,
+    displayW: 44, displayH: 77, collisionR: 0,
     emitsLight: true, glowRadius: 100, glowOffsetY: 0.12 },
 
 ]

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signInWithEmailAndPassword } from 'firebase/auth'
 import { auth } from '../firebase'
 import bubbySitUrl from '../assets/sprites/cat_sit.png'
@@ -8,6 +8,13 @@ function Login() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [frame, setFrame] = useState(0)
+
+  // Cycle through 4 frames of the cat_sit sprite sheet at ~5 fps
+  useEffect(() => {
+    const id = setInterval(() => setFrame(f => (f + 1) % 4), 200)
+    return () => clearInterval(id)
+  }, [])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -25,15 +32,16 @@ function Login() {
     <div style={styles.container}>
       <div style={styles.card}>
         <div style={styles.elephantWrap}>
-          <div style={{ width: 112, height: 112, overflow: 'hidden', imageRendering: 'pixelated' }}>
-            <img
-              src={bubbySitUrl}
-              alt="Bubby"
-              style={{ width: 448, height: 112, objectFit: 'none', objectPosition: '0 0', display: 'block' }}
-            />
-          </div>
+          <div style={{
+            width: 112, height: 112,
+            backgroundImage: `url(${bubbySitUrl})`,
+            backgroundSize: '448px 112px',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: `${-frame * 112}px 0px`,
+            imageRendering: 'pixelated',
+          }} />
         </div>
-        <h1 style={styles.title}>Harold</h1>
+        <h1 style={styles.title}>My Virtual Pet</h1>
 
         <form onSubmit={handleLogin} style={styles.form}>
           <input

@@ -74,9 +74,10 @@
   to   { background-position-x: -880px; }
 }
 
-/* ── Yawn: 11 frames — plays once, holds on last frame (-800px = frame 10) ── */
+/* ── Yawn: 11 frames — plays once, holds on last frame (-800px = frame 10) ──
+ * Deliberately slow (2.4s) so the jaw-open and close is clearly visible.  */
 .pet-yawn {
-  animation: pet-yawn 1.4s steps(10) 1 forwards;
+  animation: pet-yawn 2.4s steps(10) 1 forwards;
 }
 @keyframes pet-yawn {
   from { background-position-x: 0; }

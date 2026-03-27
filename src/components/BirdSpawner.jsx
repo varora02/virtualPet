@@ -18,8 +18,8 @@ import birdPerchUrl   from '../assets/sprites/bird/bird_perch.png'
 import './BirdSpawner.css'
 
 const BIRD_SIZE  = 56        // native px per frame
-const BIRD_SCALE = 1.0       // render at 56×56
-const BIRD_PX    = BIRD_SIZE * BIRD_SCALE   // 56
+const BIRD_SCALE = 1.1       // render at ~62×62
+const BIRD_PX    = Math.round(BIRD_SIZE * BIRD_SCALE)   // 62
 
 const FLY_PX_S   = 180       // flight speed px/s
 

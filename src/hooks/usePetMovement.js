@@ -108,6 +108,7 @@ export function usePetMovement({
   visibleProps,        // tier-filtered props — hare only targets trees that are visible
   feedTrigger,
   restTrigger,
+  scaredTrigger = 0,  // incremented when pet is clicked too many times — runs away
   waterTrigger,
   studyTrigger       = 0,
   studyPauseTrigger  = 0,
@@ -143,9 +144,9 @@ export function usePetMovement({
   const targetIdxRef       = useRef(-1)
   const targetPosRef       = useRef({ x: 0, y: 0 })
   const wanderTargetRef    = useRef(randomPointInArea(0, petSizePx))
-  // Counts consecutive ticks where Bubby made no progress toward her wander
+  // Counts consecutive ticks where Bubby made no progress toward his wander
   // target. After ~1 s (20 ticks × 50 ms) without closing the gap, a fresh
-  // target is forced so she turns away from the obstacle automatically.
+  // target is forced so he turns away from the obstacle automatically.
   const wanderStuckRef    = useRef(0)
   const wanderPrevDistRef = useRef(Infinity)  // dist to target on the previous tick
   const unlockedAreasRef   = useRef(unlockedAreas)
@@ -365,6 +366,19 @@ export function usePetMovement({
     setEatState('going_greet')
     updateDirection(cx - pos.x, cy - pos.y)
   }, [greetTrigger])
+
+  // ── Scared: rapid-click → sprint to a random far target ──────
+  useEffect(() => {
+    if (scaredTrigger === 0) return
+    const target = randomWanderTarget(unlockedAreasRef.current, petSizePx)
+    // Reuse the celebrate path (1 waypoint, no ball anim since ball_roll won't be active)
+    celebrateWaypointsRef.current = [target]
+    celebrateWpIdxRef.current = 0
+    targetPosRef.current = target
+    eatStateRef.current = 'going_celebrate'
+    setEatState('going_celebrate')
+    updateDirection(target.x - petPosRef.current.x, target.y - petPosRef.current.y)
+  }, [scaredTrigger])
 
   // ── Main movement loop (50 ms tick) ──────────────────────────
   useEffect(() => {
@@ -613,7 +627,7 @@ export function usePetMovement({
       // ── Progress timeout ───────────────────────────────────────
       // Compare this tick's distance to last tick's. If Bubby isn't getting
       // closer (sliding along a wall or grinding face-first into it), count
-      // stuck frames. After ~1 s with no progress, pick a fresh target so she
+      // stuck frames. After ~1 s with no progress, pick a fresh target so he
       // turns away from the obstacle instead of pressing against it forever.
       if (dist < wanderPrevDistRef.current - 0.5) {
         wanderStuckRef.current = 0           // making progress — reset counter

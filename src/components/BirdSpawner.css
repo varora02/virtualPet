@@ -1,11 +1,11 @@
 /* ── Blue Robin ambient bird ────────────────────────────────────────────────
  *
- * Sprite sheet frame dimensions at BIRD_SCALE = 1.0:
+ * Sprite sheet frame dimensions at BIRD_SCALE = 1.1:
  *   Native frame:   56×56 px
- *   Displayed:      56×56 px
+ *   Displayed:      62×62 px  (Math.round(56 × 1.1))
  *
- * Fly sheet:    9 frames → sheet width 504 native → 504 displayed
- * Perch sheet:  5 frames → sheet width 280 native → 280 displayed
+ * Fly sheet:    9 frames → sheet width 504 native → 558 displayed
+ * Perch sheet:  5 frames → sheet width 280 native → 310 displayed
  *
  * Keyframe `to` values are the full displayed sheet width (negative)
  * so steps(N) produces exactly N equal jumps through all frames.
@@ -14,7 +14,7 @@
 /* Flying — 9 frames, ~120ms per frame = 1.08s cycle */
 @keyframes bird-fly {
   from { background-position-x: 0;      }
-  to   { background-position-x: -504px; }
+  to   { background-position-x: -558px; }
 }
 .bird-fly {
   animation: bird-fly 1.08s steps(9) infinite;
@@ -24,7 +24,7 @@
  * Very slow so the breathing barely registers — just enough to feel alive. */
 @keyframes bird-perch {
   from { background-position-x: 0;      }
-  to   { background-position-x: -280px; }
+  to   { background-position-x: -310px; }
 }
 .bird-perch {
   animation: bird-perch 6s steps(5) infinite;

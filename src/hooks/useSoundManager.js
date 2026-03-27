@@ -112,7 +112,7 @@ const DEFAULT_VOLUME = {
   // New sounds
   unlock_area:   0.55,
   cat_purr:      0.40,
-  timer_finish:  0.55,
+  timer_finish:  0.28,
   // Music
   ambient_day:   0.55,
 }

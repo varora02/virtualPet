@@ -119,8 +119,26 @@ All sounds managed by `useSoundManager.js`.
 
 | Asset | Drop Location | Notes |
 |-------|---------------|-------|
-| Rompy elephant sprite | `src/assets/` | Varun to provide. Filename TBD — tell Claude once dropped so it can be wired in. See `Rompy_Roadmap.docx` for character spec. |
-| NPC portrait cards | `src/assets/ui/` | For shop "Friends" tab: `npc_harold_portrait.png`, `npc_bird_portrait.png`, `npc_rompy_portrait.png` (~100×100 px each). Needed when NPC Friends Pack ships. |
+| **`cat_study.png`** | `src/assets/sprites/` | Bubby's study animation — **needed now**. Currently he just uses the sit animation during study sessions. See pixel lab prompt below. |
+| **`rompy_study.png`** | `src/assets/sprites/` | Rompy studying — 4–6 frame loop, seated with book. Appears during shared sessions. See prompt below. |
+| **`rompy_celebrate.png`** | `src/assets/sprites/` | Rompy wave/jump — 4–6 frames. Plays on shared session complete. |
+| **`rompy_idle.png`** | `src/assets/sprites/` | Rompy breathing idle — 2–4 frames. |
+| Rompy walk/run sheets | `src/assets/sprites/` | For HaroldNPC-style wandering. Design pending. |
+| NPC portrait cards | `src/assets/ui/` | For shop "Friends" tab: `npc_harold_portrait.png`, `npc_bird_portrait.png`, `npc_rompy_portrait.png` (~100×100 px each). |
+
+### Pixel Lab Prompts
+
+**`cat_study.png` — Bubby studying:**
+> Top-down 2D pixel art sprite sheet, tuxedo cat (black and white fur, white chest, green eyes) sitting upright reading a small open book held in both paws, head slightly tilted down toward the book, tail wrapped around. 6 frames horizontal strip, subtle page-flick or ear-twitch every 2–3 frames to show he's engaged. Native frame size: 56×56 px. Transparent background, black outline, muted warm palette, no anti-aliasing, pixelated style. Single row sheet: 336×56 px total.
+
+**`rompy_study.png` — Rompy studying:**
+> Top-down 2D pixel art sprite sheet, cute round elephant character named Rompy, sitting cross-legged with a small open book balanced on his knees, trunk curled gently, large friendly eyes. 4-frame loop — subtle trunk sway + page turn every other frame. Native frame: 56×56 px. Transparent background, warm earthy palette, soft outlines. Single row: 224×56 px.
+
+**`rompy_celebrate.png` — Rompy celebrating:**
+> Top-down 2D pixel art sprite sheet, cute round elephant Rompy doing a happy wave — trunk raised, one foot up, big smile. 5 frames: neutral → raise trunk → peak wave → lower → neutral. Native 56×56 px, transparent background, same palette as rompy_study. Sheet: 280×56 px.
+
+**`rompy_idle.png` — Rompy idle breathing:**
+> Top-down 2D pixel art, cute round elephant Rompy standing still, 3-frame gentle breathing loop (belly slightly expands/contracts). Native 56×56 px, transparent background. Sheet: 168×56 px.
 
 ---
 

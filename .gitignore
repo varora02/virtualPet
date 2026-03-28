@@ -15,3 +15,9 @@ craftpix top down/
 
 # Generated previews
 map-preview.png
+
+# Pixel Lab export staging directories (sprites merged into src/assets/)
+blue_robin/
+bubby_sprites/
+sounds/
+docs/

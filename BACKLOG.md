@@ -4,71 +4,91 @@ Roughly ordered by value. Quick wins at the top.
 
 ---
 
-## 🧹 Dead code (delete these files)
+## 🔴 Must Do (before sharing URL more widely)
 
-~~All done — useBackgroundMusic.js, RompySVG.jsx, CatNPC.jsx/.css deleted 2026-03-25~~
+### S1 — Lock Firestore security rules
+Currently open (dev mode) — any authenticated user can read/write all pet data and coins.
+Lock rules to approved emails only. Template in `Documentation/DEPLOYMENT.md`.
+**Action:** Firebase Console → Firestore → Rules tab (not a code change)
 
 ---
 
-## 🎨 UI — bottom panel redesign
+## 🎨 Assets to Generate
 
-Mockup saved at `VirtualPet/../ui-options.html`. Two options were designed:
+### Rompy sprites (Pixel Lab)
+Character description and all prompts are in `Documentation/ASSETS.md`.
 
-- **Option A — Game stamps**: saturated gradients, deep coloured drop shadows, inset top-highlight. Punchy and game-like.
-- **Option B — Pastel tiles**: light coloured fills with matching borders. Softer, calmer feel.
+| Sprite | File | Frames | Priority |
+|--------|------|--------|----------|
+| Study (reading) | `rompy_study.png` | 6fr, 2 rows | 🔴 High — needed for shared session |
+| Celebrate (jump) | `rompy_celebrate.png` | 6fr | 🔴 High — needed for session complete |
+| Idle (breathing) | `rompy_idle.png` | 4fr | 🔴 High — needed for passive presence |
+| Walk south | `rompy_walk_south.png` | 4fr | 🟡 Medium — needed for wandering NPC |
+| Walk north | `rompy_walk_north.png` | 4fr | 🟡 Medium |
+| Walk east | `rompy_walk_east.png` | 4fr | 🟡 Medium |
+| Run east | `rompy_run_east.png` | 6fr | 🟡 Medium |
 
-Both share:
-- Icon-forward buttons (large emoji centred, tiny UPPERCASE label below)
-- "Close" shrinks from a full-width bar to a small pill in the top-right
-- Card gets a subtle purple-tinted shadow and a thin white border glow
+### Bubby sprites
+| Sprite | File | Frames | Notes |
+|--------|------|--------|-------|
+| Study (sitting with book) | `cat_study.png` | 6fr | Currently falls through to sit anim |
 
-**Pending decision**: pick Option A, B, or a mix (e.g. A's card style + B's button colours) to implement.
+---
+
+## 🎨 UI Asset Pack — Finalise
+
+Two mockup options exist at the project root (`ui-options.html`):
+- **Option A — Game stamps**: saturated gradients, deep coloured drop shadows, punchy game-like feel
+- **Option B — Pastel tiles**: light colour fills, softer/calmer feel
+
+**Task:** Decide on A, B, or a mix, then source a matching icon/UI pack.
+Good places to look: itch.io ("pixel UI", "cozy game HUD"), Kenney.nl ("ui pack", "game interface").
 
 ---
 
 ## 🔧 Refactors
 
 ### R1 — Extract `useBubbySprite` hook from Pet.jsx
-Pet.jsx is 662 lines and half of it is Bubby sprite computation (direction rows,
-`BUBBY_SZ` table, per-state backgroundImage/backgroundSize/backgroundPositionY logic).
-Extract that block into `src/hooks/useBubbySprite.js` → Pet.jsx drops to ~450 lines.
+Pet.jsx is 670+ lines and half is Bubby sprite computation.
+Extract into `src/hooks/useBubbySprite.js` → Pet.jsx drops to ~450 lines.
 
-### R2 — BirdSpawner: derive PERCH_POINTS from world props
-Currently five {x,y} coords are hardcoded in BirdSpawner. When the tilemap changes,
-these can go stale silently. Better approach: tag trees/props in worldData.js with
-`perchable: true` and let BirdSpawner pick from those at runtime.
+### R2 — BirdSpawner: derive PERCH_POINTS from worldData
+Currently five `{x,y}` coords are hardcoded. Tag props with `perchable: true` in worldData.js
+and let BirdSpawner pick from those at runtime — stays correct when the tilemap changes.
 
 ### R3 — Game.jsx domain hook split (big, optional)
-Game.jsx has 31 useState calls in one component. If it ever becomes a pain to navigate,
-split into domain hooks:
-- `usePomodoroState` — studyTrigger, studyPause/Resume/Stop, timer logic
-- `usePetProgression` — areaTiers, getNextUpgrade, handleProgressionPurchase
-- `useMusicControl` — musicMuted, toggleMusic (already tiny, low priority)
+Game.jsx has 30+ useState calls. When it becomes painful, split into:
+- `usePomodoroState` — study triggers, timer logic
+- `usePetProgression` — areaTiers, upgrades, shop
+- `useMusicControl` — tiny, low priority
 
 ---
 
 ## ✨ Features / QoL
 
-### F1 — Add next NPC using WanderingNPC base
-A squirrel, hedgehog, or fox that wanders visible areas. WanderingNPC base is ready —
-just need a sprite sheet + CSS walk-cycle animation. Should only appear in unlocked areas.
+### F1 — Wire up Rompy as wandering NPC
+`WanderingNPC.jsx` base exists. Once Rompy walk sprites arrive:
+add walk-cycle CSS, register in Pet.jsx, replace 🐘 placeholder in shared session.
 
-### F2 — Loading skeleton
-During Firestore data load (`loading === true`), the game shows nothing. A simple
-placeholder (pet silhouette + pulsing bars for the stats) would be much friendlier.
+### F2 — `cat_study.png` wiring
+Once generated: branch `eatState === 'study'` separately in Pet.jsx (currently uses sit),
+add `cat-study` CSS class + import.
 
-### F3 — BirdSpawner: per-perch-point facing direction
-Currently the bird faces left if entering from the right, and vice versa. Once perched,
-it could turn to face a preferred direction (e.g. always face inward toward the world
-center) rather than keeping its approach direction.
+### F3 — Loading skeleton
+During Firestore load, game shows nothing. Add pet silhouette + pulsing stat bars.
 
 ### F4 — World screen-size handling
-Verify that world-scene gracefully handles viewports narrower than 1344px
-(horizontal scroll vs scale-down). Set an explicit `min-width` or CSS `scale()` so
-the game remains playable on 13" MacBooks.
+Verify the 1344px world scales on 13" MacBooks. Set `min-width` or CSS `scale()`.
 
-### F5 — New world props / tier 3
-Add props that only appear at high tiers (tier 3+). Fountain, statue, seasonal tree, etc.
+### F5 — Night ambient music
+`ambient_night.mp3` is referenced but commented out in `useSoundManager.js`.
+Source the file and uncomment the one line.
+
+### F6 — New world props / tier 3
+Props only at high tiers — fountain, statue, seasonal tree, etc.
+
+### F7 — Robin additional perch behaviours
+Preen + look-around animations. Prompts in `Documentation/ASSETS.md`.
 
 ---
 
@@ -78,11 +98,12 @@ Add props that only appear at high tiers (tier 3+). Fountain, statue, seasonal t
 
 ---
 
-*Last updated: 2026-03-25*
+*Last updated: 2026-03-27*
 
 ---
 
 ### Session log
 | Date | Done |
 |---|---|
-| 2026-03-25 | Bird bug fix, spawn timing to production, spriteUtils.js, useHareMovement parameterized, ShopModal extracted, WanderingNPC base created, dead code deleted |
+| 2026-03-27 | Shared Pomodoro session (Firestore-driven), Rompy placeholder, vercel.json cache fix, yawn 65→50%, timer volume reduced, staging folders deleted, useHareMovement.js deleted, BACKLOG restructured |
+| 2026-03-25 | Bird bug fix, spawn timing, spriteUtils.js, useHareMovement parameterised, ShopModal extracted, WanderingNPC base created, dead code deleted |
